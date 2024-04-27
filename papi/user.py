@@ -1,4 +1,5 @@
 import re
+import pendulum
 from typing import Protocol, runtime_checkable
 from tinydb import TinyDB, Query
 from tinydb.operations import *
@@ -53,6 +54,50 @@ def check_user_id(user_id: str) -> bool:
 
 
 @runtime_checkable
+class User(Protocol):
+    """This class represents a user, which consists of a user name, id,
+    and optional email address.
+
+    :param user_name: User name, e.g. John Smith.
+    :type user_name: str
+    :param email: Email address, defaults to None.
+    :type email: str, optional
+    :raises ValueError: If the name does not consist of either 2 or 3 parts, then
+        a ValueError is raised.
+    :raises ValueError: If the email address is not correctly formed, then a
+        ValueError is raised.
+    """
+
+    def __init__(self, user_name: str, email: str = None):
+        """Constructor method"""
+        if len(user_name.split()) == 1 or len(user_name.split()) > 3:
+            raise ValueError("Name must consist of two or three parts only")
+        self.user_name = user_name
+        if email is not None:
+            valid_email = check_valid_email(email)
+            if not valid_email:
+                raise ValueError("Email address is malformed")
+            self.email = email
+        else:
+            self.email = ""
+        self.user_id = user_name_to_user_id(user_name)
+        self.created_at = str(pendulum.now())
+
+    def to_json(self):
+        """Returns a user in JSON (dictionary) form.
+
+        :return: JSON-formatted (i.e. dictionary) user.
+        :rtype: dict
+        """
+        return {
+            "user_name": self.user_name,
+            "user_id": self.user_id,
+            "email": self.email,
+            "created_at": self.created_at,
+        }
+
+
+@runtime_checkable
 class UserDB(Protocol):
     """This class represents a user database, which is a wrapper around a TinyDB
     database. The user database stores user IDs, names, and email addreses which
@@ -74,54 +119,38 @@ class UserDB(Protocol):
                 self.db_file, sort_keys=True, indent=4, separators=(",", ": ")
             )
 
-    def insert_user(self, user_name: str, email: str = None) -> int:
-        """Inserts a user into the database, using the user's name and, optionally,
-        their email address. A non-clashing user ID will be created.
+    def insert_user(self, user) -> User:
+        """Inserts a user into the database, using a User instance.
+        A non-clashing user ID will be added if necessary.
 
-        :param user_name: A person's name.
-        :type user_name: str
-        :param email: A valid email address, defaults to None
-        :type email: str, optional
-        :raises ValueError: If the name does not consist of either 2 or 3 parts, then
-            a ValueError is raised.
-        :raises ValueError: If the email address is not correctly formed, then a
-            ValueError is raised.
+        :param user: A User instance.
+        :type user: User
         :return: ID of the inserted user.
         :rtype: int
         """
-        user_id = user_name_to_user_id(user_name)
-        if len(user_name.split()) == 2:
-            matches = self.check_matching_user_ids(user_id)
+        if len(user.user_name.split()) == 2:
+            matches = self.check_matching_user_ids(user.user_id)
             if len(matches):
                 matching_user_ids = [m["user_id"] for m in matches]
                 highest_num = max([int(m[2]) for m in matching_user_ids])
                 new_num = highest_num + 1
-                user_id = f"{user_id}{new_num}"
+                user.user_id = f"{user.user_id}{new_num}"
             else:
-                user_id = f"{user_id}1"
-        elif len(user_name.split()) == 3:
-            matches = self.check_matching_user_ids(user_id)
+                user.user_id = f"{user.user_id}1"
+        elif len(user.user_name.split()) == 3:
+            matches = self.check_matching_user_ids(user.user_id)
             if len(matches):
-                first_last_initial = f"{user_id[0]}{user_id[-1]}"
+                first_last_initial = f"{user.user_id[0]}{user.user_id[-1]}"
                 matches = self.check_matching_user_ids(first_last_initial)
                 if len(matches):
                     matching_user_ids = [m["user_id"] for m in matches]
                     highest_num = max([int(m[2]) for m in matching_user_ids])
                     new_num = highest_num + 1
-                    user_id = f"{first_last_initial}{new_num}"
+                    user.user_id = f"{first_last_initial}{new_num}"
                 else:
-                    user_id = f"{first_last_initial}1"
-        else:
-            raise ValueError("Name must consist of two or three parts only")
+                    user.user_id = f"{first_last_initial}1"
 
-        if email is not None:
-            valid_email = check_valid_email(email)
-            if not valid_email:
-                raise ValueError("Email address is malformed")
-
-        return self.db.insert(
-            {"user_name": user_name, "user_id": user_id, "email": email}
-        )
+        return self.db.insert(user.to_json())
 
     def search_by_user_name(self, user_name: str) -> list:
         """Searches the database using a supplied user name and returns matching

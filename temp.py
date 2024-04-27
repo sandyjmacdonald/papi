@@ -39,11 +39,13 @@
 # rec = db.insert({"type": "apple", "count": 7})
 # print(rec)
 
-from papi.user import UserDB, Query, add
+from papi.user import UserDB, User, Query, add
 
-user_db = UserDB("test_userdb.json")
-u = user_db.insert_user("John Adam Smith", email="jasmith@dummymail.com")
-u = user_db.insert_user("James Smith", email="jsmith@dummymail.com")
+user_db = UserDB("userdb.json")
+usr = User("John Adam Smith", email="jasmith@dummymail.com")
+u = user_db.insert_user(usr)
+usr = User("James Smith", email="jsmith@dummymail.com")
+u = user_db.insert_user(usr)
 # Users = Query()
 # user_db.db.upsert({"email": "alan.scott@gmail.com"}, Users.userid == "AS1")
 # print(u)
