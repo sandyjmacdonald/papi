@@ -1,5 +1,7 @@
+import re
 import time
 import httpx
+import json
 from typing import Protocol, runtime_checkable
 from papi.project import Project
 
@@ -219,9 +221,9 @@ class AsanaWrapper(Protocol):
         """Gets all of the Asana user's projects."""
         pass
 
-    def check_project_exists(self):
-        """Checks whether an Asana project containing the specified project ID already
-        exists.
+    def check_project_exists(self, id):
+        """Checks whether an Asana project containing the specified project ID
+        already exists.
         """
         pass
 
@@ -242,6 +244,10 @@ class TogglTrackWrapper(Protocol):
         self.api_token = api_token
         self.password = password
         self.client = None
+        self.me = None
+        self.my_id = None
+        self.workspaces = None
+        self.default_workspace_id = None
 
     def connect(self) -> httpx.Client:
         """Creates a connection to the Toggl Track REST API.
@@ -249,6 +255,193 @@ class TogglTrackWrapper(Protocol):
         :return: The httpx Client instance with appropriate authentication.
         :rtype: httpx.Client
         """
-        auth = httpx.BasicAuth(user_name=self.api_token, password=self.password)
+        auth = httpx.BasicAuth(username=self.api_token, password=self.password)
         self.client = httpx.Client(auth=auth)
         return self.client
+
+    def get_me(self) -> dict:
+        """Gets the Toggl Track user's data back from the REST API and
+        returns it as a dictionary.
+
+        :return: A dictionary containing the user's Toggl Track data.
+        :rtype: dict
+        """
+        client = self.connect()
+        r = client.get("https://api.track.toggl.com/api/v9/me")
+        r_json = r.json()
+        return r_json
+
+    def set_me(self) -> None:
+        """Sets this class' attributes from the data returned by the call to the
+        ``get_me`` method, i.e. the user's Toggl Track ID, etc.
+        """
+        self.me = self.get_me()
+        self.my_id = self.me["id"]
+
+    def get_workspaces(self) -> list:
+        """Gets all of the Toggl Track user's workspaces.
+
+        :return: A list containing the user's Toggl Track workspaces.
+        :rtype: list
+        """
+        client = self.connect()
+        r = client.get("https://api.track.toggl.com/api/v9/me/workspaces")
+        r_json = r.json()
+        return r_json
+
+    def set_workspaces(self) -> None:
+        """Calls the ``set_me`` method and hence sets the user's Asnana workspaces."""
+        self.workspaces = self.get_workspaces()
+
+    def get_workspace_id_by_name(self, name: str) -> str:
+        """Gets an Toggl Track workspace ID from the associated workspace name.
+
+        :param name: Toggl Track workspace name.
+        :type name: str
+        :return: Toggl Track workspace ID.
+        :rtype: str
+        """
+        if self.workspaces is None:
+            self.set_workspaces()
+        for workspace in self.workspaces:
+            if workspace["name"] == name:
+                return workspace["id"]
+
+    def set_default_workspace(self, name: str) -> str:
+        """Sets the user's default Toggl Track workspace. When other class
+        methods are called, this is the workspace that will be used.
+
+        :param name: Name of the Toggl Track workspace to set as default.
+        :type name: str
+        :return: ID of the default Toggl Track workspace that has been set.
+        :rtype: str
+        """
+        workspace_id = self.get_workspace_id_by_name(name)
+        self.default_workspace_id = workspace_id
+        return self.default_workspace_id
+
+    def get_user_projects(self) -> dict:
+        """Gets all of the Toggl Track user's projects.
+
+        :return: A dictionary containing the user's Toggl Track projects.
+        :rtype: dict
+        """
+        client = self.connect()
+        r = client.get("https://api.track.toggl.com/api/v9/me/projects")
+        r_json = r.json()
+        return r_json
+
+    def get_workspace_projects(self) -> dict:
+        """Gets all of a Toggl Track workspace's projects.
+
+        :return: A dictionary containing the workspace's Toggl Track projects.
+        :rtype: dict
+        """
+        if self.default_workspace_id is None:
+            if self.workspaces is None:
+                self.set_workspaces()
+                self.default_workspace_id = self.workspaces[0]["id"]
+            else:
+                self.default_workspace_id = self.workspaces[0]["id"]
+        workspace_id = self.default_workspace_id
+        client = self.connect()
+        r = client.get(
+            f"https://api.track.toggl.com/api/v9/workspaces/{workspace_id}/projects"
+        )
+        r_json = r.json()
+        return r_json
+
+    def get_workspace_project_ids(self) -> list:
+        """Gets project IDS from a Toggl Track workspace's projects.
+
+        :return: A list of unique project IDs.
+        :rtype: list
+        """
+        projects = self.get_workspace_projects()
+        project_ids = []
+        project_id_pattern = r"P[0-9]{4}-[A-Z]{2}[A-Z0-9]{1}-[A-Z]{4}"
+        for project in projects:
+            match = re.search(project_id_pattern, project["name"])
+            if match:
+                project_id = match.group()
+                if project_id not in project_ids:
+                    project_ids.append(project_id)
+        project_ids = sorted(project_ids)
+        return project_ids
+
+    def get_workspace_project_user_ids(self) -> list:
+        """Gets user IDS from a Toggl Track workspace's projects.
+
+        :return: A list of unique workspace project user IDs.
+        :rtype: list
+        """
+        project_ids = self.get_workspace_project_ids()
+        user_ids = sorted(list(set([pid.split("-")[1] for pid in project_ids])))
+        return user_ids
+
+    def check_project_exists(self, id):
+        """Checks whether a Toggl Track project containing the specified
+        project ID already exists. If a name containing that ID is found,
+        return the project details from Toggl Track.
+
+        :return: A dictionary containing the matching project, if it exists.
+        :rtype: dict
+        """
+        projects = self.get_workspace_projects()
+        matching_project = {}
+        for project in projects:
+            if id in project["name"]:
+                matching_project = project
+        return matching_project
+
+    def create_project(
+        self,
+        project: Project,
+        workspace_id: str,
+    ) -> str:
+        """Creates a skeleton Toggl Track project from a ``Project`` instance.
+
+        :param project: ``Project`` instance, for which the Toggl Track project
+            should be created.
+        :type project: Project
+        :param workspace_id: ID of the Toggl Track workspace in which the project
+            should be created.
+        :type workspace_id: str
+        :raises TypeError: If the ``project`` parameter passed is not a valid
+            ``Project`` instance, raise a TypeError.
+        :return: The ID of the created Toggl Track project or None.
+        :rtype: str
+        """
+        if not isinstance(project, Project):
+            raise TypeError("Provided project is not a valid Project instance")
+        if self.default_workspace_id is None:
+            if self.workspaces is None:
+                self.set_workspaces()
+                self.default_workspace_id = self.workspaces[0]["id"]
+            else:
+                self.default_workspace_id = self.workspaces[0]["id"]
+        workspace_id = self.default_workspace_id
+        if not self.check_project_exists(project.id):
+            name = project.id
+            if project.name != "":
+                name += f" - {project.name}"
+            if project.grant_code is not None:
+                name += f" ({project.grant_code})"
+            data = {
+                "name": name,
+                "active": True,
+                "auto_estimates": False,
+                "is_private": False,
+                "color": "#2da608",
+            }
+            client = self.connect()
+            r = client.post(
+                f"https://api.track.toggl.com/api/v9/workspaces/{workspace_id}/projects",
+                data=json.dumps(data),
+            )
+            project = r.json()
+            project_id = project["id"]
+            time.sleep(2.5)
+            return project_id
+        else:
+            return None

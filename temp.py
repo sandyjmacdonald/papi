@@ -39,15 +39,37 @@
 # rec = db.insert({"type": "apple", "count": 7})
 # print(rec)
 
-from papi.user import UserDB, User, Query, add
+# from papi.user import UserDB, User, Query, add
 
-user_db = UserDB("userdb.json")
-usr = User("John Adam Smith", email="jasmith@dummymail.com")
-u = user_db.insert_user(usr)
-usr = User("James Smith", email="jsmith@dummymail.com")
-u = user_db.insert_user(usr)
+# user_db = UserDB("userdb.json")
+# usr = User("John Adam Smith", email="jasmith@dummymail.com")
+# u = user_db.insert_user(usr)
+# usr = User("James Smith", email="jsmith@dummymail.com")
+# u = user_db.insert_user(usr)
 # Users = Query()
 # user_db.db.upsert({"email": "alan.scott@gmail.com"}, Users.userid == "AS1")
 # print(u)
 # result = user_db.check_matching_userids("AM2")
 # print(len(result) > 0)
+
+from papi.wrappers import TogglTrackWrapper
+from papi import config
+# from papi.project import Project
+# from papi.user import UserDB, User
+
+# user_db = UserDB()
+# user = User("John Adam Smith")
+# user_id = user_db.insert_user(user)
+# proj = Project(user_id=user_id, grant_code="R12345", name="RNA-seq analysis")
+
+# Toggl Track testing
+toggl_api_key = config["TOGGL_TRACK_API_KEY"]
+toggl_api_password = config["TOGGL_TRACK_PASSWORD"]
+toggl = TogglTrackWrapper(toggl_api_key, toggl_api_password)
+toggl.set_default_workspace("TF Data Science")
+project_ids = toggl.get_workspace_project_ids()
+print(project_ids)
+user_ids = toggl.get_workspace_project_user_ids()
+print(user_ids)
+
+# toggl_proj = toggl.create_project(proj, toggl.default_workspace_id)

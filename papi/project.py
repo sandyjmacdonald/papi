@@ -91,10 +91,13 @@ class Project(Protocol):
         id: str = None,
         p_uuid: str = None,
         name: str = "",
+        grant_code: str = None,
     ) -> None:
         """Constructor method"""
         self.year = year
         self.user_id = user_id
+        self.grant_code = grant_code
+        self.name = name
         if suffix is not None:
             self.suffix = suffix
         else:

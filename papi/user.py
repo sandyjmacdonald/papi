@@ -149,8 +149,8 @@ class UserDB(Protocol):
                     user.user_id = f"{first_last_initial}{new_num}"
                 else:
                     user.user_id = f"{first_last_initial}1"
-
-        return self.db.insert(user.to_json())
+        self.db.insert(user.to_json())
+        return user.user_id
 
     def search_by_user_name(self, user_name: str) -> list:
         """Searches the database using a supplied user name and returns matching
