@@ -2,9 +2,6 @@ from papi.wrappers import TogglTrackWrapper
 from papi import config
 from papi.project import Project
 
-# Create project instance, grant code and name are optional
-proj = Project(user_id="ABC", grant_code="R12345", name="RNA-seq analysis")
-
 # Set up Toggl Track API wrapper
 #
 # NOTE: you must have added Toggl Track API key and password, with
@@ -15,6 +12,9 @@ toggl = TogglTrackWrapper(toggl_api_key, toggl_api_password)
 
 # Tell wrapper which workspace to set as default
 toggl.set_default_workspace("TF Data Science")
+
+# Create project instance, grant code and name are optional
+proj = Project(user_id="ABC", grant_code="R12345", name="RNA-seq analysis")
 
 # Create project on Toggl Track
 #
