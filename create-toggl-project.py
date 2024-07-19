@@ -15,6 +15,8 @@ toggl.set_default_workspace("TF Data Science")
 
 # Create project instance, grant code and name are optional
 proj = Project(user_id="ABC", grant_code="R12345", name="RNA-seq analysis")
+# or if you already have the project ID generated:
+# proj = Project(id="P2024-ABC-DEFG", grant_code="R12345", name="RNA-seq analysis")
 
 # Create project on Toggl Track
 #
