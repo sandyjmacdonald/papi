@@ -6,6 +6,27 @@ from typing import Protocol, runtime_checkable
 from papi.project import Project
 
 
+def get_project_ids(project_names):
+    """This function takes a list of project names and finds and
+    returns a list of project IDs.
+
+    :param project_names: A list of project names.
+    :type project_names: list
+    :return: A list of project IDs.
+    :rtype: list
+    """
+    project_ids = []
+    project_id_pattern = r"P[0-9]{4}-[A-Z]{2}[A-Z0-9]{1}-[A-Z]{4}"
+    for project_name in project_names:
+        match = re.search(project_id_pattern, project_name)
+        if match:
+            project_id = match.group()
+            if project_id not in project_ids:
+                project_ids.append(project_id)
+    project_ids = sorted(project_ids)
+    return project_ids
+
+
 @runtime_checkable
 class AsanaWrapper(Protocol):
     """This class is a wrapper around the Asana REST API, that adds specific
@@ -157,6 +178,40 @@ class AsanaWrapper(Protocol):
         team_id = self.get_team_id_by_name(name)
         self.default_team_id = team_id
         return self.default_team_id
+
+    def get_team_projects(self) -> dict:
+        """Gets all of an Asana team's projects.
+
+        :return: A dictionary containing the team's Asana projects.
+        :rtype: dict
+        """
+        if self.default_team_id is not None:
+            team_gid = self.default_team_id
+            client = self.connect()
+            r = client.get(f"https://app.asana.com/api/1.0/teams/{team_gid}/projects")
+            r_json = r.json()
+            return r_json["data"]
+
+    def get_team_project_ids(self) -> list:
+        """Gets project IDS from an Asana team's projects.
+
+        :return: A list of unique project IDs.
+        :rtype: list
+        """
+        projects = self.get_team_projects()
+        project_names = [project["name"] for project in projects]
+        project_ids = get_project_ids(project_names)
+        return project_ids
+
+    def get_team_project_user_ids(self) -> list:
+        """Gets user IDS from an Asana team's projects.
+
+        :return: A list of unique team project user IDs.
+        :rtype: list
+        """
+        project_ids = self.get_team_project_ids()
+        user_ids = sorted(list(set([pid.split("-")[1] for pid in project_ids])))
+        return user_ids
 
     def create_project(
         self, project: Project, workspace_id: str, team_id: str, template_id: str = None
@@ -358,15 +413,8 @@ class TogglTrackWrapper(Protocol):
         :rtype: list
         """
         projects = self.get_workspace_projects()
-        project_ids = []
-        project_id_pattern = r"P[0-9]{4}-[A-Z]{2}[A-Z0-9]{1}-[A-Z]{4}"
-        for project in projects:
-            match = re.search(project_id_pattern, project["name"])
-            if match:
-                project_id = match.group()
-                if project_id not in project_ids:
-                    project_ids.append(project_id)
-        project_ids = sorted(project_ids)
+        project_names = [project["name"] for project in projects]
+        project_ids = get_project_ids(project_names)
         return project_ids
 
     def get_workspace_project_user_ids(self) -> list:
