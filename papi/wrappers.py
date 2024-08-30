@@ -2,6 +2,8 @@ import re
 import time
 import httpx
 import json
+import pendulum
+import warnings
 from typing import Protocol, runtime_checkable
 from papi.project import Project
 
@@ -385,6 +387,31 @@ class TogglTrackWrapper(Protocol):
         r = client.get("https://api.track.toggl.com/api/v9/me/projects")
         r_json = r.json()
         return r_json
+
+    def get_user_hours(self, start_time=None, end_time=pendulum.now().to_rfc3339_string()) -> dict:
+        """Gets all of the Toggl Track user's tracked hours for a given 
+        time period. If no end_time is given, then the current time is used.
+
+        :return: A dictionary containing the Toggl Track projects and hours tracked.
+        :rtype: dict
+        """
+        if start_time is not None:
+            client = self.connect()
+            r = client.get("https://api.track.toggl.com/api/v9/me/time_entries", params={"start_date": start_time, "end_date": end_time})
+            times_json = r.json()
+            times = {}
+            for t in times_json:
+                pid = t["pid"]
+                seconds = t["duration"]
+                hours = seconds / 60 / 60
+                if pid not in times:
+                    times[pid] = hours
+                else:
+                    times[pid] += hours
+            return times
+        else:
+            warnings.warn("Please provide a valid start date/time in RFC3339 format!")
+            return None
 
     def get_workspace_projects(self) -> dict:
         """Gets all of a Toggl Track workspace's projects.

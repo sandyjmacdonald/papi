@@ -177,3 +177,4 @@ userdb.json
 new_userdb.json
 */test_user_db.json
 testing.py
+dist/

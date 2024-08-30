@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "papi-projects"
+version = "0.1.0"
+description = "PAPI is an API for managing projects"
+authors = ["sandyjmacdonald <sandyjmacdonald@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+packages = [
+    { include = "papi" },
+    { include = "scripts" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pendulum = "^3.0.0"
+httpx = "^0.27.2"
+tinydb = "^4.8.0"
+python-dotenv = "^1.0.0"
+
+[tool.poetry.scripts]
+create-toggl-project = "scripts.createtogglproject:main"
+collate-toggl-hours = "scripts.collatetogglhours:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
