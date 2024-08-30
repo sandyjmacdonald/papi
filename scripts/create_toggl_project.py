@@ -35,7 +35,8 @@ def main():
     toggl = TogglTrackWrapper(toggl_api_key, toggl_api_password)
 
     # Tell wrapper which workspace to set as default
-    toggl.set_default_workspace("TF Data Science")
+    toggl_workspace = config["TOGGL_TRACK_WORKSPACE"]
+    toggl.set_default_workspace(toggl_workspace)
 
     user_id = args.user_id
     grant_code = args.grant_code

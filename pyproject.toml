@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "papi-projects"
-version = "0.1.0"
+version = "0.1.1"
 description = "PAPI is an API for managing projects"
 authors = ["sandyjmacdonald <sandyjmacdonald@gmail.com>"]
 license = "MIT"
@@ -19,8 +19,8 @@ tinydb = "^4.8.0"
 python-dotenv = "^1.0.0"
 
 [tool.poetry.scripts]
-create-toggl-project = "scripts.createtogglproject:main"
-collate-toggl-hours = "scripts.collatetogglhours:main"
+create-toggl-project = "scripts.create_toggl_project:main"
+collate-toggl-hours = "scripts.collate_toggl_hours:main"
 
 [build-system]
 requires = ["poetry-core"]
