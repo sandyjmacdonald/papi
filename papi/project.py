@@ -19,7 +19,7 @@ def check_project_id(id: str) -> bool:
     :rtype: bool
     """
     valid = False
-    pattern = re.compile(r"^P[0-9]{4}-[A-Z]{2}[A-Z0-9]{1}-[A-Z]{4}$")
+    pattern = re.compile(r"^P[0-9]{4}-[A-Z]{2}[A-Z1-9]{1}-[A-Z]{4}$")
     if pattern.match(id):
         valid = True
     return valid
@@ -104,6 +104,9 @@ class Project(Protocol):
             self.generate_suffix()
         if id is not None and check_project_id(id):
             self.id = id
+            self.year = int(id[1:5])
+            self.user_id = id.split("-")[1]
+            self.suffix = id.split("-")[2]
         elif (
             isinstance(year, int)
             and check_user_id(user_id)

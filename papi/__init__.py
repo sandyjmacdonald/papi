@@ -1,6 +1,8 @@
+import os
 from dotenv import dotenv_values
 
-config = dotenv_values(".env")
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+config = dotenv_values(dotenv_path)
 
 ASANA_API_KEY = config["ASANA_API_KEY"]
 ASANA_PASSWORD = config["ASANA_PASSWORD"]

@@ -111,3 +111,100 @@ To collate your hours worked in August 2024:
 ```
 collate-toggl-hours -s 2024-08-01 -e 2024-08-31 -o august-2024-hours.tsv
 ```
+
+## API reference
+
+## project module
+
+## Project class
+
+The `Project` class is central to the whole library. A `Project` instance can be created in a few different ways.
+
+At the most basic level, a valid `user_id` (either three letter initials or two letter initials and an integer number from 1 to 9) can be provided when instantiating the class, and the prefix and suffix will be generated.
+
+```
+from papi.project import Project
+
+proj = Project(user_id="CRD")
+```
+
+This will generate the project ID, `id` attribute using the current year, and a random four-letter suffix.
+
+```
+print(proj.id)
+print(proj.year)
+print(proj.suffix)
+```
+
+```
+P2024-CRD-FZLL
+2024
+FZLL
+```
+
+If a valid project ID has already been created, then a `Project` instance can be instantiated with the `id` attribute, and the `year`, `user_id`, and `suffix` attributes will be pulled out and set on the instance.
+
+```
+proj = Project(id="P2024-CRD-FZLL")
+
+print(proj.year)
+print(proj.user_id)
+print(proj.suffix)
+```
+
+```
+2024
+CRD
+FZLL
+```
+
+If a grant code and/or project name are available, then these can be passed in when instantiating the class.
+
+```
+proj = Project(user_id="CRD", grant_code="R12345", name="RNA-seq analysis")
+```
+
+A version 4 UUID is also generated for the project when instantiated.
+
+```
+proj = Project(user_id="CRD")
+
+print(proj.p_uuid)
+```
+
+```
+6697e457-9785-4668-b78b-72616b27aede
+```
+
+ Or if a version 4 UUID has been generated separately then it can be provided when instantiating.
+
+ ```
+ proj = Project(user_id="CRD", p_uuid="6697e457-9785-4668-b78b-72616b27aede")
+ ```
+
+## project functions
+
+A couple of functions are provided to check the validity of a project ID, to check the validity of a suffix, and to check for a valid version 4 UUID.
+
+You can check the validity of a project ID as follows:
+
+```
+from papi.project import check_project_id
+
+print(check_project_id("P2024-CRD-FZLL"))
+print(check_project_id("P2024-CRD-1234"))
+```
+
+```
+True
+False
+```
+
+You can check the validity of a project suffix as follows:
+
+```
+from papi.project import check_suffix
+
+print(check_suffix("FZLL"))
+print(check_suffix("1234"))
+```
