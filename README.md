@@ -259,4 +259,4 @@ usr = User("Charles Darwin")
 usr.user_id = "CD1"
 ```
 
-Setting the `user_id` attribute creates the possibility of a clash in user IDs, therefore the `user` module provides a means to create a basic user database with the TinyDB library.
+Setting the `user_id` attribute creates the possibility of a clash in user IDs, therefore the `user` module provides a means to create a basic user database with the TinyDB library. This avoids the possibility of a clash and appends and increments integer numbers to the end of the user ID if a matching one is already in the database.
