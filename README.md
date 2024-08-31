@@ -208,3 +208,8 @@ from papi.project import check_suffix
 print(check_suffix("FZLL"))
 print(check_suffix("1234"))
 ```
+
+```
+True
+False
+```
