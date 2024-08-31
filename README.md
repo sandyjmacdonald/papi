@@ -213,3 +213,50 @@ print(check_suffix("1234"))
 True
 False
 ```
+
+## user module
+
+## User class
+
+The `User` class stores attributes of a user: their name, a three-letter initial (or two-letter initial and integer number from 1 to 9), and an optional email address.
+
+The most basic way of instantiating a `User` instance is as follows:
+
+```
+from papi.user import User
+
+usr = User("Charles Robert Darwin")
+
+print(usr.user_id)
+print(usr.user_name)
+```
+
+```
+CRD
+Charles Robert Darwin
+```
+
+The first initials are converted into the `user_id` attribute.
+
+If an email address is available, then this can be provided when instantiating:
+
+```
+from papi.user import User
+
+usr = User("Charles Robert Darwin", email="cdarwin@beaglemail.com")
+
+print(usr.email)
+```
+
+```
+cdarwin@beaglemail.com
+```
+
+Because our user ID naming scheme enforces that a user ID must be unique, the `user_id` attribute should not really be set directly, although it can in theory:
+
+```
+usr = User("Charles Darwin")
+usr.user_id = "CD1"
+```
+
+Setting the `user_id` attribute creates the possibility of a clash in user IDs, therefore the `user` module provides a means to create a basic user database with the TinyDB library.
