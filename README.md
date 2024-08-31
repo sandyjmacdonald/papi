@@ -1,7 +1,7 @@
 PAPI is an API for managing projects.
 
 <p align="center">
-  <img src="https://imgur.com/lprJ3mPs.jpg" alt="HAHA BUSINESS meme">
+  <img src="https://imgur.com/lprJ3mP.jpg" alt="HAHA BUSINESS meme" height="200">
 </p>
 
 It has functionality for creating User and Project instances, storing users in a TinyDB database, and generating project IDs in the format we use in the Data Science group (at the Bioscience Technology Facility at the University of York). It also has wrappers for Asana and Toggl Track, two tools we use for project management and time tracking, respectively.
