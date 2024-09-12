@@ -5,7 +5,8 @@ import json
 import pendulum
 import warnings
 from typing import Protocol, runtime_checkable
-from papi.project import Project, User
+from papi.project import Project
+from papi.user import User
 
 
 def get_project_ids(project_names):
@@ -663,7 +664,7 @@ class NotionWrapper(Protocol):
             "Notion-Version": "2022-06-28"
         }
         data = {}
-        r = httpx.post(f"https://api.notion.com/v1/databases/{database_id}/query", headers=headers, json=data)
+        r = httpx.post(f"https://api.notion.com/v1/databases/{projects_db_id}/query", headers=headers, json=data)
         r_json = r.json()
         projects = []
         for p in r_json["results"]:
