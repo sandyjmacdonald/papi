@@ -649,7 +649,7 @@ class NotionWrapper(Protocol):
             user_id = u["properties"]["Code"]["rich_text"][0]["plain_text"]
             user_name = u["properties"]["Name"]["title"][0]["plain_text"]
             email = u["properties"]["Email"]["email"]
-            user = User(user_name, user_id, email)
+            user = User(user_name=user_name, user_id=user_id, email=email)
             users.append(user)
         return users
     

@@ -60,6 +60,8 @@ class User(Protocol):
 
     :param user_name: User name, e.g. John Smith.
     :type user_name: str
+    :param user_id: User ID, e.g. JS1.
+    :type user_id: str
     :param email: Email address, defaults to None.
     :type email: str, optional
     :raises ValueError: If the name does not consist of either 2 or 3 parts, then
@@ -68,10 +70,11 @@ class User(Protocol):
         ValueError is raised.
     """
 
-    def __init__(self, user_name: str, email: str = None):
+    def __init__(self, user_name: str = None, user_id: str = None, email: str = None):
         """Constructor method"""
-        if len(user_name.split()) == 1 or len(user_name.split()) > 3:
-            raise ValueError("Name must consist of two or three parts only")
+        if user_name is not None:
+            if len(user_name.split()) == 0 or len(user_name.split()) > 3:
+                raise ValueError("Name must consist of one to three parts only")
         self.user_name = user_name
         if email is not None:
             valid_email = check_valid_email(email)
@@ -80,7 +83,10 @@ class User(Protocol):
             self.email = email
         else:
             self.email = ""
-        self.user_id = user_name_to_user_id(user_name)
+        if user_id is None:
+            self.user_id = user_name_to_user_id(user_name)
+        else:
+            self.user_id = user_id
         self.created_at = str(pendulum.now())
 
     def to_json(self):
@@ -102,7 +108,7 @@ class User(Protocol):
         :return: basic User() attrs.
         :rtype: str
         """
-        return f'User("{self.user_name}", "{self.user_id}", {self.email}, {self.created_at})'
+        return f'User("{self.user_name}", "{self.user_id}", {self.email})'
 
 
 @runtime_checkable
