@@ -127,21 +127,13 @@ class Project(Protocol):
         else:
             self.p_uuid = str(uuid.uuid4())
 
-    def __str__(self) -> str:
-        """Human-readable representation of class. Currently just the project ID.
-
-        :return: Project ID.
-        :rtype: str
-        """
-        return self.id
-
     def __repr__(self) -> str:
-        """Machine-readable representation of class. Currently just the project ID.
+        """Machine-readable representation of class..
 
-        :return: Project ID.
+        :return: basic Project() attrs.
         :rtype: str
         """
-        return self.id
+        return f'Project("{self.id}", "{self.name}")'
 
     def generate_suffix(self) -> str:
         """Generates a 4-character, uppercase, alphabetical suffix for a project, and

@@ -97,7 +97,11 @@ class User(Protocol):
         }
     
     def __repr__(self):
-        """print method"""
+        """Machine-readable representation of class.
+
+        :return: basic User() attrs.
+        :rtype: str
+        """
         return f'User("{self.user_name}", "{self.user_id}", {self.email}, {self.created_at})'
 
 

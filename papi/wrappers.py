@@ -627,7 +627,7 @@ class NotionWrapper(Protocol):
         page_id = r_json["id"]
         return page_id
     
-    def get_users(self, clients_db_id: str) -> str:
+    def get_users(self, clients_db_id: str) -> list:
         """Gets the Notion clients (users) from the Clients database.
 
         :param clients_db_id: ID of the Notion Clients database from which to get
@@ -644,10 +644,32 @@ class NotionWrapper(Protocol):
         r = httpx.post(f"https://api.notion.com/v1/databases/{clients_db_id}/query", headers=headers, json=data)
         r_json = r.json()
         users = []
-        for client in r_json["results"]:
-            user_id = client["properties"]["Code"]["rich_text"][0]["plain_text"]
-            user_name = client["properties"]["Name"]["title"][0]["plain_text"]
-            email = client["properties"]["Email"]["email"]
+        for u in r_json["results"]:
+            user_id = u["properties"]["Code"]["rich_text"][0]["plain_text"]
+            user_name = u["properties"]["Name"]["title"][0]["plain_text"]
+            email = u["properties"]["Email"]["email"]
             user = User(user_name, user_id, email)
             users.append(user)
         return users
+    
+    def create_project(self, project: Project, projects_db_id: str) -> str:
+        """Docstring here"""
+        return
+    
+    def get_projects(self, projects_db_id: str) -> list:
+        """Docstring here"""
+        headers = {
+            "Authorization": f"Bearer {self.api_secret}", 
+            "Notion-Version": "2022-06-28"
+        }
+        data = {}
+        r = httpx.post(f"https://api.notion.com/v1/databases/{database_id}/query", headers=headers, json=data)
+        r_json = r.json()
+        projects = []
+        for p in r_json["results"]:
+            project_id = p["properties"]["Project ID"]["title"][0]["plain_text"]
+            project_name = p["properties"]["Description"]["rich_text"][0]["plain_text"]
+            user_id = p["properties"]["PI Code"]["rollup"]["array"][0]["rich_text"][0]["plain_text"]
+            project = Project(id=project_id, name=project_name)
+            projects.append(project)
+        return projects
