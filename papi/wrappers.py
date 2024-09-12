@@ -537,6 +537,17 @@ class NotionWrapper(Protocol):
         self.api_secret = api_secret
 
     def create_user(self, user: User, clients_db_id: str) -> str:
+        """Creates a Notion client (user) from a `User` instance.
+
+        :param user: `User` instance, for which the Notion client, i.e. user
+            should be created.
+        :type project: User
+        :param clients_db_id: ID of the Notion Clients database to which the user
+            should be added.
+        :type clients_db_id: str
+        :return: The ID of the created client/user database page in Notion.
+        :rtype: str
+        """
         user_name = user.user_name
         user_id = user.user_id
         email = user.email
@@ -615,3 +626,28 @@ class NotionWrapper(Protocol):
         r_json = r.json()
         page_id = r_json["id"]
         return page_id
+    
+    def get_users(self, clients_db_id: str) -> str:
+        """Gets the Notion clients (users) from the Clients database.
+
+        :param clients_db_id: ID of the Notion Clients database from which to get
+        the clients.
+        :type clients_db_id: str
+        :return: A list of User instances for the returned users from Notion.
+        :rtype: str
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_secret}", 
+            "Notion-Version": "2022-06-28"
+        }
+        data = {}
+        r = httpx.post(f"https://api.notion.com/v1/databases/{clients_db_id}/query", headers=headers, json=data)
+        r_json = r.json()
+        users = []
+        for client in r_json["results"]:
+            user_id = client["properties"]["Code"]["rich_text"][0]["plain_text"]
+            user_name = client["properties"]["Name"]["title"][0]["plain_text"]
+            email = client["properties"]["Email"]["email"]
+            user = User(user_name, user_id, email)
+            users.append(user)
+        return users

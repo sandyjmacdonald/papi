@@ -95,6 +95,10 @@ class User(Protocol):
             "email": self.email,
             "created_at": self.created_at,
         }
+    
+    def __repr__(self):
+        """print method"""
+        return f'User("{self.user_name}", "{self.user_id}", {self.email}, {self.created_at})'
 
 
 @runtime_checkable
