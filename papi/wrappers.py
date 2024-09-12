@@ -5,7 +5,7 @@ import json
 import pendulum
 import warnings
 from typing import Protocol, runtime_checkable
-from papi.project import Project
+from papi.project import Project, User
 
 
 def get_project_ids(project_names):
@@ -454,7 +454,7 @@ class TogglTrackWrapper(Protocol):
         user_ids = sorted(list(set([pid.split("-")[1] for pid in project_ids])))
         return user_ids
 
-    def check_project_exists(self, id):
+    def check_project_exists(self, id: str) -> str:
         """Checks whether a Toggl Track project containing the specified
         project ID already exists. If a name containing that ID is found,
         return the project details from Toggl Track.
@@ -520,3 +520,98 @@ class TogglTrackWrapper(Protocol):
             return project_id
         else:
             return None
+
+
+@runtime_checkable
+class NotionWrapper(Protocol):
+    """This class is a wrapper around the Notion API, that adds specific
+    helper functions for getting certain bits of data back from the API, and
+    adds convenience functions for creating clients, projects etc.
+
+    :param api_secret: Notion API secret.
+    :type api_secret: str
+    """
+
+    def __init__(self, api_secret: str) -> None:
+        """Constructor method"""
+        self.api_secret = api_secret
+
+    def create_user(self, user: User, clients_db_id: str) -> str:
+        user_name = user.user_name
+        user_id = user.user_id
+        email = user.email
+        headers = {
+            "Authorization": f"Bearer {self.api_secret}", 
+            "Notion-Version": "2022-06-28"
+        }
+        data = {
+            "parent": {
+                "database_id": clients_db_id
+            },
+            "properties": {
+                "Code": {
+                "type": "rich_text",
+                "rich_text": [
+                    {
+                    "type": "text",
+                    "text": {
+                        "content": user_id,
+                        "link": None
+                    },
+                    "annotations": {
+                        "bold": False,
+                        "italic": False,
+                        "strikethrough": False,
+                        "underline": False,
+                        "code": False,
+                        "color": "default"
+                    },
+                    "plain_text": user_id,
+                    "href": None
+                    }
+                ]
+                },
+                "Type": {
+                "type": "select",
+                "select": {
+                    "name": "Individual",
+                    "color": "blue"
+                }
+                },
+                "Email": {
+                "type": "email",
+                "email": email
+                },
+                "York User ID": {
+                "type": "rich_text",
+                "rich_text": []
+                },
+                "Name": {
+                "id": "title",
+                "type": "title",
+                "title": [
+                    {
+                    "type": "text",
+                    "text": {
+                        "content": user_name,
+                        "link": None
+                    },
+                    "annotations": {
+                        "bold": False,
+                        "italic": False,
+                        "strikethrough": False,
+                        "underline": False,
+                        "code": False,
+                        "color": "default"
+                    },
+                    "plain_text": user_name,
+                    "href": None
+                    }
+                ]
+                }
+            }
+        }
+        r = httpx.post("https://api.notion.com/v1/pages", headers=headers, json=data)
+        r_json = r.json()
+        page_id = r_json["id"]
+        return page_id
