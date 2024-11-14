@@ -1,7 +1,7 @@
 import argparse
 import warnings
 from papi.wrappers import TogglTrackWrapper
-from papi import config
+from papi import config, setup_logger
 from papi.project import Project
 
 def main():
@@ -21,14 +21,25 @@ def main():
     parser.add_argument(
         "-p", "--project_id", type=str, help="full project ID, e.g. P2024-ABC-DEFG, if already generated", required=False
     )
+    parser.add_argument(
+        '--enable-logging', action='store_true', help='Enable logging output for the papi library.'
+    )
+    parser.add_argument(
+        '--log-level', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help='Set the logging level (default: INFO).'
+    )
+    parser.add_argument(
+        '--log-file', type=str, help='Path to a file where logs should be written.'
+    )
     args = parser.parse_args()
+
+    logger = setup_logger(args.enable_logging, args.log_level, args.log_file)
 
     # Set up Toggl Track API wrapper
     #
     # NOTE: you must have added Toggl Track API key and password, with
     # variable names below to .env file in this directory
-    if not "TOGGL_TRACK_API_KEY" in config and not "TOGGL_TRACK_PASSWORD" in config:
-        warnings.warn("Please create a .env file with TOGGL_TRACK_API_KEY and TOGGL_TRACK_PASSWORD set!")
+    if "TOGGL_TRACK_API_KEY" not in config and "TOGGL_TRACK_PASSWORD" not in config:
+        logger.warning("Please create a .env file with TOGGL_TRACK_API_KEY and TOGGL_TRACK_PASSWORD set!")
         return
     toggl_api_key = config["TOGGL_TRACK_API_KEY"]
     toggl_api_password = config["TOGGL_TRACK_PASSWORD"]
@@ -46,25 +57,25 @@ def main():
     if not project_id and user_id:
         # Create project instance, grant code and name are optional
         if grant_code and project_name:
-            proj = Project(user_id=user_id, grant_code=grant_code, name=project_name)
+            project = Project(user_id=user_id, grant_code=grant_code, name=project_name)
         elif grant_code and not project_name:
-            proj = Project(user_id=user_id, grant_code=grant_code)
+            project = Project(user_id=user_id, grant_code=grant_code)
         elif not grant_code and project_name:
-            proj = Project(user_id=user_id, name=project_name)
+            project = Project(user_id=user_id, name=project_name)
         else:
-            proj = Project(user_id=user_id)
+            project = Project(user_id=user_id)
     elif not user_id and project_id:
         # Create project instance, grant code and name are optional
         if grant_code and project_name:
-            proj = Project(id=project_id, grant_code=grant_code, name=project_name)
+            project = Project(id=project_id, grant_code=grant_code, name=project_name)
         elif grant_code and not project_name:
-            proj = Project(id=project_id, grant_code=grant_code)
+            project = Project(id=project_id, grant_code=grant_code)
         elif not grant_code and project_name:
-            proj = Project(id=project_id, name=project_name)
+            project = Project(id=project_id, name=project_name)
         else:
-            proj = Project(id=project_id)
+            project = Project(id=project_id)
     else:
-        warnings.warn("Please provide either a three-letter user_id *or* a full project_id")
+        logger.warning("Please provide either a three-letter user_id *or* a full project_id")
         return
 
     # Create project on Toggl Track
@@ -72,8 +83,7 @@ def main():
     # If name and grant code were provided, then project name will
     # look like P2024-ABC-WXYZ - RNA-seq analysis (R12345),
     # otherwise it will just be the project ID
-    toggl_proj_id = toggl.create_project(proj, toggl.default_workspace_id)
-    print(f"Project '{toggl_proj_id}' created successfully!")
+    toggl_proj_id = toggl.create_project(project, toggl.default_workspace_id)
 
 if __name__ == "__main__":
     main()

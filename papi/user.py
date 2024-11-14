@@ -1,9 +1,11 @@
 import re
 import pendulum
+import logging
 from typing import Protocol, runtime_checkable
 from tinydb import TinyDB, Query
 from tinydb.operations import *
 
+logger = logging.getLogger(__name__)
 
 def user_name_to_user_id(user_name: str) -> str:
     """Generates a 3-character, uppercase, alphabetical user ID from a user name,
@@ -14,8 +16,10 @@ def user_name_to_user_id(user_name: str) -> str:
     :return: Three-character user ID.
     :rtype: str
     """
+    logger.debug("Calling user_name_to_user_id function")
     user_name_parts = user_name.split()
     user_id = "".join([word[0] for word in user_name_parts]).upper()
+    logger.info(f"User name '{user_name}' converted to user ID '{user_id}'")
     return user_id
 
 
@@ -28,8 +32,13 @@ def check_valid_email(email: str) -> bool:
     :return: True/False for whether the email is valid.
     :rtype: bool
     """
+    logger.debug("Calling check_valid_email function")
     valid_email = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
     valid = valid_email.match(email)
+    if valid:
+        logger.info(f"Email '{email}' is valid")
+    else:
+        logger.warning(f"Email '{email}' is not valid")
     return valid
 
 
@@ -43,13 +52,16 @@ def check_user_id(user_id: str) -> bool:
     :return: True/False for whether the user ID is valid.
     :rtype: bool
     """
+    logger.debug("Calling check_user_id function")
     if not isinstance(user_id, str):
+        logger.warning(f"User ID '{user_id}' is not valid")
         return False
     else:
         valid = False
         pattern = re.compile(r"^[A-Z]{2}[A-Z0-9]{1}$")
         if pattern.match(user_id):
             valid = True
+            logger.info(f"User ID '{user_id}' is valid")
         return valid
 
 
@@ -60,6 +72,8 @@ class User(Protocol):
 
     :param user_name: User name, e.g. John Smith.
     :type user_name: str
+    :param user_id: User ID, e.g. JS1.
+    :type user_id: str
     :param email: Email address, defaults to None.
     :type email: str, optional
     :raises ValueError: If the name does not consist of either 2 or 3 parts, then
@@ -68,10 +82,12 @@ class User(Protocol):
         ValueError is raised.
     """
 
-    def __init__(self, user_name: str, email: str = None):
+    def __init__(self, user_name: str = None, user_id: str = None, email: str = None):
         """Constructor method"""
-        if len(user_name.split()) == 1 or len(user_name.split()) > 3:
-            raise ValueError("Name must consist of two or three parts only")
+        logger.debug("Creating User instance")
+        if user_name is not None:
+            if len(user_name.split()) == 0 or len(user_name.split()) > 3:
+                raise ValueError("Name must consist of one to three parts only")
         self.user_name = user_name
         if email is not None:
             valid_email = check_valid_email(email)
@@ -80,8 +96,12 @@ class User(Protocol):
             self.email = email
         else:
             self.email = ""
-        self.user_id = user_name_to_user_id(user_name)
+        if user_id is None:
+            self.user_id = user_name_to_user_id(user_name)
+        else:
+            self.user_id = user_id
         self.created_at = str(pendulum.now())
+        logger.info(f"User '{self.user_id}' instance created")
 
     def to_json(self):
         """Returns a user in JSON (dictionary) form.
@@ -89,12 +109,22 @@ class User(Protocol):
         :return: JSON-formatted (i.e. dictionary) user.
         :rtype: dict
         """
+        logger.debug("Calling User.to_json method")
         return {
             "user_name": self.user_name,
             "user_id": self.user_id,
             "email": self.email,
             "created_at": self.created_at,
         }
+    
+    def __repr__(self):
+        """Machine-readable representation of class.
+
+        :return: basic User() attrs.
+        :rtype: str
+        """
+        logger.debug("Calling User.__repr__ method")
+        return f'User("{self.user_name}", "{self.user_id}", {self.email})'
 
 
 @runtime_checkable
@@ -110,6 +140,7 @@ class UserDB(Protocol):
 
     def __init__(self, db_file: str = None) -> None:
         """Constructor method"""
+        logger.debug("Creating UserDB instance")
         if db_file is not None:
             self.db = TinyDB(db_file, sort_keys=True, indent=4, separators=(",", ": "))
             self.db_file = db_file
@@ -118,6 +149,8 @@ class UserDB(Protocol):
             self.db = TinyDB(
                 self.db_file, sort_keys=True, indent=4, separators=(",", ": ")
             )
+        logger.info(f"UserDB '{self.db_file}' instance created")
+        
 
     def insert_user(self, user) -> User:
         """Inserts a user into the database, using a User instance.
@@ -128,6 +161,7 @@ class UserDB(Protocol):
         :return: ID of the inserted user.
         :rtype: int
         """
+        logger.debug("Calling UserDB.insert_user method")
         if len(user.user_name.split()) == 2:
             matches = self.check_matching_user_ids(user.user_id)
             if len(matches):
@@ -150,6 +184,7 @@ class UserDB(Protocol):
                 else:
                     user.user_id = f"{first_last_initial}1"
         self.db.insert(user.to_json())
+        logger.info(f"User ID '{useruser_id}' inserted into user database")
         return user.user_id
 
     def search_by_user_name(self, user_name: str) -> list:
@@ -161,8 +196,13 @@ class UserDB(Protocol):
         :return: A list of matching documents.
         :rtype: list
         """
+        logger.debug("Calling UserDB.search_by_user_name method")
         Users = Query()
         result = self.db.search(Users.user_name == user_name)
+        if len(result):
+            logger.info(f"{len(result)} matches for {user_name} found in user database")
+        else:
+            logger.info(f"No matches for {user_name} found in user database")
         return result
 
     def search_by_user_id(self, user_id: str) -> list:
@@ -174,8 +214,13 @@ class UserDB(Protocol):
         :return: A list of matching documents.
         :rtype: list
         """
+        logger.debug("Calling UserDB.search_by_user_id method")
         Users = Query()
         result = self.db.search(Users.user_id == user_id)
+        if len(result):
+            logger.info(f"{len(result)} matches for {user_id} found in user database")
+        else:
+            logger.info(f"No matches for {user_id} found in user database")
         return result
 
     def check_matching_user_ids(self, user_id: str) -> list:
@@ -189,6 +234,7 @@ class UserDB(Protocol):
         :return: A list of matching documents.
         :rtype: list
         """
+        logger.debug("Calling UserDB.check_matching_user_ids method")
         Users = Query()
         if user_id[-1].isnumeric() or len(user_id) == 2:
             result = self.db.search(Users.user_id.search(rf"^{user_id[0:2]}\d{{1}}"))
