@@ -4,11 +4,13 @@ import random
 import re
 import uuid
 import warnings
+import logging
 from typing import Protocol, runtime_checkable
 from papi.user import check_user_id
 
-THIS_YEAR = pendulum.now().year
+logger = logging.getLogger(__name__)
 
+THIS_YEAR = pendulum.now().year
 
 def check_project_id(id: str) -> bool:
     """Checks whether a project ID is correctly formed.
@@ -18,10 +20,14 @@ def check_project_id(id: str) -> bool:
     :return: True/False for whether project ID is correctly formed.
     :rtype: bool
     """
+    logger.debug("Calling check_project_id function")
     valid = False
     pattern = re.compile(r"^P[0-9]{4}-[A-Z]{2}[A-Z1-9]{1}-[A-Z]{4}$")
     if pattern.match(id):
         valid = True
+        logger.info(f"Project ID '{id}' is valid")
+    else:
+        logger.info(f"Project ID '{id}' is not valid")
     return valid
 
 
@@ -33,10 +39,14 @@ def check_suffix(suffix: str) -> bool:
     :return: True/False for whether project suffix is correctly formed.
     :rtype: bool
     """
+    logger.debug("Calling check_suffix function")
     valid = False
     pattern = re.compile(r"^[A-Z]{4}$")
     if pattern.match(suffix):
         valid = True
+        logger.info(f"Project suffix '{suffix}' is valid")
+    else:
+        logger.info(f"Project suffix '{suffix}' is not valid")
     return valid
 
 
@@ -48,9 +58,12 @@ def check_uuid(p_uuid: str) -> bool:
     :return: True/False for whether the UUID is valid.
     :rtype: bool
     """
+    logger.debug("Calling check_uuid function")
     try:
         uuid_obj = uuid.UUID(p_uuid, version=4)
+        logger.info(f"Project UUID '{p_uuid}' is valid")
     except ValueError:
+        logger.error(f"Project UUID '{p_uuid}' is not valid")
         return False
     return str(uuid_obj) == p_uuid
 
@@ -94,6 +107,7 @@ class Project(Protocol):
         grant_code: str = None,
     ) -> None:
         """Constructor method"""
+        logger.debug("Creating Project instance")
         self.year = year
         self.user_id = user_id
         self.grant_code = grant_code
@@ -126,6 +140,7 @@ class Project(Protocol):
             )
         else:
             self.p_uuid = str(uuid.uuid4())
+        logger.info(f"Project '{self.id}' instance created")
 
     def __repr__(self) -> str:
         """Machine-readable representation of class..
@@ -133,6 +148,7 @@ class Project(Protocol):
         :return: basic Project() attrs.
         :rtype: str
         """
+        logger.debug("Calling Project.__repr__ method")
         return f'Project("{self.id}", "{self.name}")'
 
     def generate_suffix(self) -> str:
@@ -142,6 +158,7 @@ class Project(Protocol):
         :return: Project suffix.
         :rtype: str
         """
+        logger.debug("Calling Project.generate_suffix method")
         letters = string.ascii_uppercase
         suffix = "".join(random.choice(letters) for i in range(4))
         self.suffix = suffix
@@ -153,4 +170,5 @@ class Project(Protocol):
         :return: True/False for whether the project ID is valid.
         :rtype: bool
         """
+        logger.debug("Calling Project.id_is_valid method")
         return check_project_id(self.id)

@@ -1,5 +1,7 @@
 import random
+import logging
 
+logger = logging.getLogger(__name__)
 
 def random_number(length):
     return "".join([str(random.randint(1, 9)) for i in range(length)])
