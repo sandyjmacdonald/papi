@@ -98,7 +98,7 @@ def main():
     # If name and grant code were provided, then project name will
     # look like P2024-ABC-WXYZ - RNA-seq analysis (R12345),
     # otherwise it will just be the project ID
-    toggl_proj_id = toggl.create_project(proj, toggl.default_workspace_id)
+    toggl_proj_id = toggl.create_project(project, toggl.default_workspace_id)
 
 if __name__ == "__main__":
     main()

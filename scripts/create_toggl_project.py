@@ -57,23 +57,23 @@ def main():
     if not project_id and user_id:
         # Create project instance, grant code and name are optional
         if grant_code and project_name:
-            proj = Project(user_id=user_id, grant_code=grant_code, name=project_name)
+            project = Project(user_id=user_id, grant_code=grant_code, name=project_name)
         elif grant_code and not project_name:
-            proj = Project(user_id=user_id, grant_code=grant_code)
+            project = Project(user_id=user_id, grant_code=grant_code)
         elif not grant_code and project_name:
-            proj = Project(user_id=user_id, name=project_name)
+            project = Project(user_id=user_id, name=project_name)
         else:
-            proj = Project(user_id=user_id)
+            project = Project(user_id=user_id)
     elif not user_id and project_id:
         # Create project instance, grant code and name are optional
         if grant_code and project_name:
-            proj = Project(id=project_id, grant_code=grant_code, name=project_name)
+            project = Project(id=project_id, grant_code=grant_code, name=project_name)
         elif grant_code and not project_name:
-            proj = Project(id=project_id, grant_code=grant_code)
+            project = Project(id=project_id, grant_code=grant_code)
         elif not grant_code and project_name:
-            proj = Project(id=project_id, name=project_name)
+            project = Project(id=project_id, name=project_name)
         else:
-            proj = Project(id=project_id)
+            project = Project(id=project_id)
     else:
         logger.warning("Please provide either a three-letter user_id *or* a full project_id")
         return
@@ -83,7 +83,7 @@ def main():
     # If name and grant code were provided, then project name will
     # look like P2024-ABC-WXYZ - RNA-seq analysis (R12345),
     # otherwise it will just be the project ID
-    toggl_proj_id = toggl.create_project(proj, toggl.default_workspace_id)
+    toggl_proj_id = toggl.create_project(project, toggl.default_workspace_id)
 
 if __name__ == "__main__":
     main()
