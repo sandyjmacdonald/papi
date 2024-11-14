@@ -30,6 +30,10 @@ def get_project_ids(project_names):
             if project_id not in project_ids:
                 project_ids.append(project_id)
     project_ids = sorted(project_ids)
+    if len(project_ids):
+        logger.info(f"{len(project_ids)} project IDs found")
+    else:
+        logger.info(f"No project IDs found")
     return project_ids
 
 
@@ -80,6 +84,7 @@ class AsanaWrapper(Protocol):
         client = self.connect()
         r = client.get("https://app.asana.com/api/1.0/users/me")
         r_json = r.json()
+        logger.info("Asana user data retrieved")
         return r_json["data"]
 
     def set_me(self) -> None:
@@ -95,6 +100,7 @@ class AsanaWrapper(Protocol):
             workspace_id = workspace["gid"]
             workspace_name = workspace["name"]
             self.workspaces[workspace_id] = workspace_name
+        logger.info("AsanaWrapper attributes set")
 
     def set_workspaces(self) -> None:
         """Calls the ``set_me`` method and hence sets the user's Asnana workspaces."""
@@ -128,6 +134,7 @@ class AsanaWrapper(Protocol):
         logger.debug("Calling AsanaWrapper.set_default_workspace method")
         workspace_id = self.get_workspace_id_by_name(name)
         self.default_workspace_id = workspace_id
+        logger.info("AsanaWrapper default workspace set")
         return self.default_workspace_id
 
     def get_teams(self, workspace_id: str) -> dict:
@@ -162,6 +169,7 @@ class AsanaWrapper(Protocol):
             team_id = team["gid"]
             team_name = team["name"]
             self.teams[team_id] = team_name
+        logger.info("AsanaWrapper user teams set")
 
     def get_team_id_by_name(self, name: str) -> str:
         """Gets the ID of an Asana team once a user's Asana teams have been set.
@@ -194,6 +202,7 @@ class AsanaWrapper(Protocol):
         logger.debug("Calling AsanaWrapper.set_default_team method")
         team_id = self.get_team_id_by_name(name)
         self.default_team_id = team_id
+        logger.info("AsanaWrapper default team set")
         return self.default_team_id
 
     def get_team_projects(self) -> dict:
@@ -274,6 +283,7 @@ class AsanaWrapper(Protocol):
             project = r.json()
             project_id = project["data"]["new_project"]["gid"]
             time.sleep(2.5)
+            logger.info(f"Asana project {project_id} created")
             return project_id
         else:
             pass
@@ -328,6 +338,7 @@ class TogglTrackWrapper(Protocol):
         self.my_id = None
         self.workspaces = None
         self.default_workspace_id = None
+        logger.info("TogglTrackWrapper instance created")
 
     def connect(self) -> httpx.Client:
         """Creates a connection to the Toggl Track REST API.
@@ -351,6 +362,7 @@ class TogglTrackWrapper(Protocol):
         client = self.connect()
         r = client.get("https://api.track.toggl.com/api/v9/me")
         r_json = r.json()
+        logger.info("Toggl Track user data retrieved")
         return r_json
 
     def set_me(self) -> None:
@@ -360,6 +372,7 @@ class TogglTrackWrapper(Protocol):
         logger.debug("Calling TogglTrackWrapper.set_me method")
         self.me = self.get_me()
         self.my_id = self.me["id"]
+        logger.info("TogglTrackWrapper attributes set")
 
     def get_workspaces(self) -> list:
         """Gets all of the Toggl Track user's workspaces.
@@ -377,6 +390,7 @@ class TogglTrackWrapper(Protocol):
         """Calls the ``set_me`` method and hence sets the user's Asnana workspaces."""
         logger.debug("Calling TogglTrackWrapper.set_workspaces method")
         self.workspaces = self.get_workspaces()
+        logger.info("Toggl Track user workspaces set")
 
     def get_workspace_id_by_name(self, name: str) -> str:
         """Gets an Toggl Track workspace ID from the associated workspace name.
@@ -405,6 +419,7 @@ class TogglTrackWrapper(Protocol):
         logger.debug("Calling TogglTrackWrapper.set_default_workspace method")
         workspace_id = self.get_workspace_id_by_name(name)
         self.default_workspace_id = workspace_id
+        logger.info("Toggl Track default workspace set")
         return self.default_workspace_id
 
     def get_user_projects(self) -> dict:
@@ -559,8 +574,10 @@ class TogglTrackWrapper(Protocol):
             project = r.json()
             project_id = project["id"]
             time.sleep(2.5)
+            logger.info(f"Toggl Track project {project_id} created")
             return project_id
         else:
+            logger.warning("Toggl Track project not created")
             return None
 
 
@@ -578,6 +595,7 @@ class NotionWrapper(Protocol):
         """Constructor method"""
         logger.debug("Creating NotionWrapper instance")
         self.api_secret = api_secret
+        logger.info("NotionWrapper instance created")
 
     def create_user(self, user: User, clients_db_id: str) -> str:
         """Creates a Notion client (user) from a `User` instance.
@@ -652,6 +670,7 @@ class NotionWrapper(Protocol):
         r = httpx.post("https://api.notion.com/v1/pages", headers=headers, json=data)
         r_json = r.json()
         page_id = r_json["id"]
+        logger.info(f"Notion user created with page ID {page_id}")
         return page_id
 
     def get_user_page_id(self, clients_db_id: str, user: User) -> str:
@@ -688,8 +707,10 @@ class NotionWrapper(Protocol):
         u = r_json["results"]
         if u:
             user_page_id = u[0]["id"]
+            logger.info(f"Notion user found with page ID {user_page_id}")
             return user_page_id
         else:
+            logger.warning("Notion user not found")
             return None
 
     def get_users(self, clients_db_id: str) -> list:
@@ -720,6 +741,10 @@ class NotionWrapper(Protocol):
             email = u["properties"]["Email"]["email"]
             user = User(user_name=user_name, user_id=user_id, email=email)
             users.append(user)
+        if len(users):
+            logger.info(f"{len(users)} Notion users found")
+        else:
+            logger.warning("No Notion users found")
         return users
 
     def create_project(self, project: Project, user: User, projects_db_id: str, user_page_id=None) -> str:
@@ -869,6 +894,7 @@ class NotionWrapper(Protocol):
         r = httpx.post("https://api.notion.com/v1/pages", headers=headers, json=data)
         r_json = r.json()
         page_id = r_json["id"]
+        logger.info(f"Notion project created with page ID {page_id}")
         return page_id
 
     def get_projects(self, projects_db_id: str) -> list:
@@ -901,4 +927,8 @@ class NotionWrapper(Protocol):
             ]
             project = Project(id=project_id, name=project_name)
             projects.append(project)
+        if len(projects):
+            logger.info(f"{len(projects)} Notion projects found")
+        else:
+            logger.warning("No Notion projects found")
         return projects

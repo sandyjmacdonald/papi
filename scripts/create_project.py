@@ -1,11 +1,11 @@
 import argparse
-from papi.wrappers import NotionWrapper
+from papi.wrappers import NotionWrapper, TogglTrackWrapper
 from papi import config, setup_logger
 from papi.user import User
 from papi.project import Project
 
 def main():
-    """Main function of create-notion-project script"""
+    """Main function of create-project script"""
 
     # Set up argparse
     parser = argparse.ArgumentParser()
@@ -46,6 +46,21 @@ def main():
     notion_projects_db = config["NOTION_PROJECTS_DB"]
     notion = NotionWrapper(notion_api_secret)
 
+    # Set up Toggl Track API wrapper
+    #
+    # NOTE: you must have added Toggl Track API key and password, with
+    # variable names below to .env file in this directory
+    if "TOGGL_TRACK_API_KEY" not in config and "TOGGL_TRACK_PASSWORD" not in config:
+        logger.warning("Please create a .env file with TOGGL_TRACK_API_KEY and TOGGL_TRACK_PASSWORD set!")
+        return
+    toggl_api_key = config["TOGGL_TRACK_API_KEY"]
+    toggl_api_password = config["TOGGL_TRACK_PASSWORD"]
+    toggl = TogglTrackWrapper(toggl_api_key, toggl_api_password)
+
+    # Tell wrapper which workspace to set as default
+    toggl_workspace = config["TOGGL_TRACK_WORKSPACE"]
+    toggl.set_default_workspace(toggl_workspace)
+
     user_id = args.user_id
     user_name = args.user_name
     project_name = args.name
@@ -77,6 +92,13 @@ def main():
         notion_proj_id = notion.create_project(project, user, notion_projects_db, user_page_id=user_page_id)
     else:
         notion_proj_id = notion.create_project(project, user, notion_projects_db)
+
+    # Create project on Toggl Track
+    #
+    # If name and grant code were provided, then project name will
+    # look like P2024-ABC-WXYZ - RNA-seq analysis (R12345),
+    # otherwise it will just be the project ID
+    toggl_proj_id = toggl.create_project(proj, toggl.default_workspace_id)
 
 if __name__ == "__main__":
     main()
