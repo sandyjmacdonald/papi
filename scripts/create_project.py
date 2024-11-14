@@ -1,8 +1,41 @@
+import sys
 import argparse
 from papi.wrappers import NotionWrapper, TogglTrackWrapper
 from papi import config, setup_logger
 from papi.user import User
 from papi.project import Project
+
+def prompt_for_args():
+    """Prompt the user for input interactively."""
+    print("No command-line arguments provided. Enter the required information below:")
+    
+    user_id = input("Enter user ID (e.g., JS1): ").strip()
+    user_name = input("Enter user name (e.g., John Smith): ").strip()
+    name = input("Enter project name (e.g., 'RNA-seq analysis'): ").strip()
+    project_id = input("Enter project ID (e.g., P2024-JS1-DEFG): ").strip()
+    
+    enable_logging_input = input("Enable logging? (y/n) [n]: ").strip().lower()
+    enable_logging = enable_logging_input in ('y', 'yes')
+    
+    log_level_choices = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+    log_level = input(f"Set log level {log_level_choices} [INFO]: ").strip().upper()
+    if log_level not in log_level_choices:
+        print("Invalid log level. Defaulting to 'INFO'.")
+        log_level = 'INFO'
+    
+    log_file = input("Path to log file (leave blank for none): ").strip()
+    log_file = log_file if log_file else None
+    
+    # Create a Namespace object similar to argparse's
+    return argparse.Namespace(
+        user_id=user_id or None,
+        user_name=user_name or None,
+        name=name or None,
+        project_id=project_id or None,
+        enable_logging=enable_logging,
+        log_level=log_level,
+        log_file=log_file
+    )
 
 def main():
     """Main function of create-project script"""
@@ -31,6 +64,12 @@ def main():
         '--log-file', type=str, help='Path to a file where logs should be written.'
     )
     args = parser.parse_args()
+
+    # Check if any arguments were provided
+    if len(sys.argv) == 1:
+        args = prompt_for_args()
+    else:
+        args = parser.parse_args()
 
     logger = setup_logger(args.enable_logging, args.log_level, args.log_file)
 
