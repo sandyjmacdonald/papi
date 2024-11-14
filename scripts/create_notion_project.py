@@ -10,25 +10,25 @@ def main():
     # Set up argparse
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-u", "--user_id", type=str, help="three-letter user (client) ID, e.g. JS1", required=False
+        "-u", "--user_id", type=str, help="three-letter user (client) ID, e.g. JAS", required=False
     )
     parser.add_argument(
-        "-v", "--user_name", type=str, help="user (client) name, e.g. John Smith", required=False
+        "-v", "--user_name", type=str, help="user (client) name, e.g. John Andrew Smith", required=False
     )
     parser.add_argument(
         "-n", "--name", type=str, help="short project name, e.g. 'RNA-seq analysis', project ID will be auto-generated", required=False
     )
     parser.add_argument(
-        "-p", "--project_id", type=str, help="full project ID, e.g. P2024-JS1-DEFG, if already generated", required=False
+        "-p", "--project_id", type=str, help="full project ID, e.g. P2024-JAS-ABCD, if already generated", required=False
     )
     parser.add_argument(
-        '--enable-logging', action='store_true', help='Enable logging output for the papi library.'
+        '--enable-logging', action='store_true', help='enable logging output for the papi librar.'
     )
     parser.add_argument(
-        '--log-level', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help='Set the logging level (default: INFO).'
+        '--log-level', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help='set the logging level (default: INFO)'
     )
     parser.add_argument(
-        '--log-file', type=str, help='Path to a file where logs should be written.'
+        '--log-file', type=str, help='path to a file where logs should be written'
     )
     args = parser.parse_args()
 

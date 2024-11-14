@@ -10,7 +10,7 @@ def main():
     # Set up argparse
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-u", "--user_id", type=str, help="three-letter user ID, e.g. CRD", required=False
+        "-u", "--user_id", type=str, help="three-letter user ID, e.g. JAS", required=False
     )
     parser.add_argument(
         "-g", "--grant_code", type=str, help="grant code, e.g. R12345", required=False
@@ -19,16 +19,16 @@ def main():
         "-n", "--name", type=str, help="short project name, e.g. 'RNA-seq analysis'", required=False
     )
     parser.add_argument(
-        "-p", "--project_id", type=str, help="full project ID, e.g. P2024-ABC-DEFG, if already generated", required=False
+        "-p", "--project_id", type=str, help="full project ID, e.g. P2024-JAS-ABCD, if already generated", required=False
     )
     parser.add_argument(
-        '--enable-logging', action='store_true', help='Enable logging output for the papi library.'
+        '--enable-logging', action='store_true', help='enable logging output for the papi library'
     )
     parser.add_argument(
-        '--log-level', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help='Set the logging level (default: INFO).'
+        '--log-level', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help='set the logging level (default: INFO)'
     )
     parser.add_argument(
-        '--log-file', type=str, help='Path to a file where logs should be written.'
+        '--log-file', type=str, help='path to a file where logs should be written'
     )
     args = parser.parse_args()
 
@@ -81,7 +81,7 @@ def main():
     # Create project on Toggl Track
     #
     # If name and grant code were provided, then project name will
-    # look like P2024-ABC-WXYZ - RNA-seq analysis (R12345),
+    # look like P2024-JAS-ABCD - RNA-seq analysis (R12345),
     # otherwise it will just be the project ID
     toggl_proj_id = toggl.create_project(project, toggl.default_workspace_id)
 

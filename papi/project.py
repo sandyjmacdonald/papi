@@ -30,6 +30,16 @@ def check_project_id(id: str) -> bool:
         logger.info(f"Project ID '{id}' is not valid")
     return valid
 
+def user_id_from_project_id(id: str) -> str:
+    """Extracts a three-letter user ID from a project ID.
+
+    :param id: Project ID to use.
+    :type id: str
+    :return: Three-letter user ID.
+    :rtype: str
+    """
+    logger.debug("Calling user_id_from_project_id function")
+    return id.split("-")[1]
 
 def check_suffix(suffix: str) -> bool:
     """Checks whether a project suffix is correctly formed.
