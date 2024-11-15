@@ -29,7 +29,7 @@ def prompt_for_args():
     if enable_logging:
         log_level_choices = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
         log_level = input(f"Set log level {log_level_choices} [INFO]: ").strip().upper()
-        log_level = log_level if log_level else None
+        log_level = log_level if log_level else "INFO"
         if log_level is not None and log_level not in log_level_choices:
             print("Invalid log level. Defaulting to 'INFO'.")
             log_level = 'INFO'

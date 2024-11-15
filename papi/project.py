@@ -12,6 +12,70 @@ logger = logging.getLogger(__name__)
 
 THIS_YEAR = pendulum.now().year
 
+
+def get_project_ids(project_names) -> list:
+    """This function takes a list of project names and finds and
+    returns a list of project IDs.
+
+    :param project_names: A list of project names.
+    :type project_names: list
+    :return: A list of project IDs.
+    :rtype: list
+    """
+    logger.debug("Calling get_project_ids function")
+    project_ids = []
+    project_id_pattern = r"P[0-9]{4}-[A-Z]{2}[A-Z0-9]{1}-[A-Z]{4}"
+    for project_name in project_names:
+        match = re.search(project_id_pattern, project_name)
+        if match:
+            project_id = match.group()
+            if project_id not in project_ids:
+                project_ids.append(project_id)
+    project_ids = sorted(project_ids)
+    if len(project_ids):
+        logger.info(f"{len(project_ids)} project IDs found")
+    else:
+        logger.info(f"No project IDs found")
+    return project_ids
+
+def decompose_project_name(project_name) -> dict:
+    """This function takes a project name string and attempts
+    to split out a project ID, name, and grant code.
+
+    :param project_name: A project name string.
+    :type project_name: str
+    :return: A dictionary with the split-out parts.
+    :rtype: dict
+    """
+    logger.debug("Calling decompose_project_name function")
+    pattern = r"""
+        ^
+        (?P<project_id>P\d{4}-(?:[A-Z]{2}\d|[A-Z]{3})-[A-Z]{4})?
+        (?:\s*[-–—]\s*|\s+)?
+        (?P<project_name>[^()\[\]]+?)?
+        (?:\s*[\(\[]\s*
+            (?P<grant_code>[^)\]]+)
+        \s*[\)\]])?
+        $
+    """
+    regex = re.compile(pattern, re.VERBOSE)
+    match = regex.match(project_name)
+    if match:
+        project_id = match.group('project_id')
+        project_name = match.group('project_name')
+        grant_code = match.group('grant_code')
+        return {
+            "project_id": project_id,
+            "project_name": project_name,
+            "grant_code": grant_code
+        }
+    else:
+        return {
+            "project_id": None,
+            "project_name": None,
+            "grant_code": None
+        }
+
 def check_project_id(id: str) -> bool:
     """Checks whether a project ID is correctly formed.
 
@@ -115,6 +179,8 @@ class Project(Protocol):
         p_uuid: str = None,
         name: str = "",
         grant_code: str = None,
+        created_at = None,
+        modified_at = None,
     ) -> None:
         """Constructor method"""
         logger.debug("Creating Project instance")
@@ -122,6 +188,8 @@ class Project(Protocol):
         self.user_id = user_id
         self.grant_code = grant_code
         self.name = name
+        self.created_at = created_at
+        self.modified_at = modified_at
         if suffix is not None:
             self.suffix = suffix
         else:

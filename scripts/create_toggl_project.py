@@ -1,5 +1,4 @@
 import argparse
-import warnings
 from papi.wrappers import TogglTrackWrapper
 from papi import config, setup_logger
 from papi.project import Project

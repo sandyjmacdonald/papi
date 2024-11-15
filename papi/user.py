@@ -184,7 +184,7 @@ class UserDB(Protocol):
                 else:
                     user.user_id = f"{first_last_initial}1"
         self.db.insert(user.to_json())
-        logger.info(f"User ID '{useruser_id}' inserted into user database")
+        logger.info(f"User ID '{user.user_id}' inserted into user database")
         return user.user_id
 
     def search_by_user_name(self, user_name: str) -> list:

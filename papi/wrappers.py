@@ -6,35 +6,10 @@ import pendulum
 import warnings
 import logging
 from typing import Protocol, runtime_checkable
-from papi.project import Project
+from papi.project import Project, get_project_ids, decompose_project_name
 from papi.user import User
 
 logger = logging.getLogger(__name__)
-
-def get_project_ids(project_names):
-    """This function takes a list of project names and finds and
-    returns a list of project IDs.
-
-    :param project_names: A list of project names.
-    :type project_names: list
-    :return: A list of project IDs.
-    :rtype: list
-    """
-    logger.debug("Calling get_project_ids function")
-    project_ids = []
-    project_id_pattern = r"P[0-9]{4}-[A-Z]{2}[A-Z0-9]{1}-[A-Z]{4}"
-    for project_name in project_names:
-        match = re.search(project_id_pattern, project_name)
-        if match:
-            project_id = match.group()
-            if project_id not in project_ids:
-                project_ids.append(project_id)
-    project_ids = sorted(project_ids)
-    if len(project_ids):
-        logger.info(f"{len(project_ids)} project IDs found")
-    else:
-        logger.info(f"No project IDs found")
-    return project_ids
 
 
 @runtime_checkable
@@ -433,6 +408,29 @@ class TogglTrackWrapper(Protocol):
         r = client.get("https://api.track.toggl.com/api/v9/me/projects")
         r_json = r.json()
         return r_json
+    
+    def get_user_project_objects(self) -> list:
+        """Gets all of the Toggl Track user's projects as Project instances.
+
+        :return: A list of Project instances.
+        :rtype: dict
+        """
+        logger.debug("Calling TogglTrackWrapper.get_user_project_objects method")
+        user_projects_json = self.get_user_projects()
+        user_project_names = [p["name"] for p in user_projects_json]
+        user_project_created = [pendulum.parse(p["created_at"]) for p in user_projects_json]
+        user_project_modified = [pendulum.parse(p["at"]) for p in user_projects_json]
+        user_projects = []
+        for i, n in enumerate(user_project_names):
+            decomposed = decompose_project_name(n)
+            if decomposed["project_id"] is not None:
+                project_id = decomposed["project_id"]
+                project_name = decomposed["project_name"]
+                created_at = user_project_created[i]
+                modified_at = user_project_modified[i]
+                project = Project(id=project_id, name=project_name, created_at=created_at, modified_at=modified_at)
+                user_projects.append(project)
+        return user_projects
 
     def get_user_hours(
         self, start_time=None, end_time=pendulum.now().to_rfc3339_string()
@@ -508,6 +506,29 @@ class TogglTrackWrapper(Protocol):
         project_ids = self.get_workspace_project_ids()
         user_ids = sorted(list(set([pid.split("-")[1] for pid in project_ids])))
         return user_ids
+
+    def get_workspace_project_objects(self) -> list:
+        """Gets all of the Toggl Track workspace's projects as Project instances.
+
+        :return: A list of Project instances.
+        :rtype: dict
+        """
+        logger.debug("Calling TogglTrackWrapper.get_workspace_project_objects method")
+        workspace_projects_json = self.get_workspace_projects()
+        workspace_project_names = [p["name"] for p in workspace_projects_json]
+        workspace_projects = []
+        workspace_project_created = [pendulum.parse(p["created_at"]) for p in workspace_projects_json]
+        workspace_project_modified = [pendulum.parse(p["at"]) for p in workspace_projects_json]
+        for i, n in enumerate(workspace_project_names):
+            decomposed = decompose_project_name(n)
+            if decomposed["project_id"] is not None:
+                project_id = decomposed["project_id"]
+                project_name = decomposed["project_name"]
+                created_at = workspace_project_created[i]
+                modified_at = workspace_project_modified[i]
+                project = Project(id=project_id, name=project_name, created_at=created_at, modified_at=modified_at)
+                workspace_projects.append(project)
+        return workspace_projects
 
     def check_project_exists(self, id: str) -> str:
         """Checks whether a Toggl Track project containing the specified
@@ -710,7 +731,7 @@ class NotionWrapper(Protocol):
             logger.info(f"Notion user found with page ID {user_page_id}")
             return user_page_id
         else:
-            logger.warning("Notion user not found")
+            logger.info("Notion user not found")
             return None
 
     def get_users(self, clients_db_id: str) -> list:

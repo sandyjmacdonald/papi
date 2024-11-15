@@ -48,18 +48,19 @@ def main():
     # Get tracked hours and tracked project IDs/names
     tracked_hours = toggl.get_user_hours(start_time=start_time, end_time=end_time)
     projects = {p["id"]: p["name"] for p in toggl.get_user_projects() if p["id"] in tracked_hours}
+    hours_per_project = [(projects[t], tracked_hours[t]) for t in tracked_hours]
 
     output = args.output
 
     if output:
         # If output filename provided, write to file
         with open(output, "w") as out:
-            for t in tracked_hours:
-                out.write(f"{projects[t]}\t{tracked_hours[t]}\n")
+            for h in sorted(hours_per_project, key=lambda x:x[1], reverse=True):
+                out.write(f"{h[0]}\t{h[1]}\n")
     else:
         # Otherwise, print out project names and tracked hours to stdout
-        for t in tracked_hours:
-            print(f"{projects[t]}\t{tracked_hours[t]}")
+        for h in sorted(hours_per_project, key=lambda x:x[1], reverse=True):
+            print(f"{h[0]}\t{h[1]}")
 
 if __name__ == "__main__":
     main()
