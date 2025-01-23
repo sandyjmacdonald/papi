@@ -53,28 +53,18 @@ def main():
     project_name = args.name
     project_id = args.project_id
 
-    if not project_id and user_id:
-        # Create project instance, grant code and name are optional
-        if grant_code and project_name:
-            project = Project(user_id=user_id, grant_code=grant_code, name=project_name)
-        elif grant_code and not project_name:
-            project = Project(user_id=user_id, grant_code=grant_code)
-        elif not grant_code and project_name:
-            project = Project(user_id=user_id, name=project_name)
+    if project_id and not project_name:
+        project = Project(id=project_id)
+    elif project_name and not project_id:
+        if user_id:
+            project = Project(name=project_name, user_id=user_id)
         else:
-            project = Project(user_id=user_id)
-    elif not user_id and project_id:
-        # Create project instance, grant code and name are optional
-        if grant_code and project_name:
-            project = Project(id=project_id, grant_code=grant_code, name=project_name)
-        elif grant_code and not project_name:
-            project = Project(id=project_id, grant_code=grant_code)
-        elif not grant_code and project_name:
-            project = Project(id=project_id, name=project_name)
-        else:
-            project = Project(id=project_id)
+            logger.warning("Please provide either a valid project ID or valid three-letter user ID")
+            return
+    elif project_id and project_name:
+        project = Project(name=project_name, id=project_id)
     else:
-        logger.warning("Please provide either a three-letter user_id *or* a full project_id")
+        logger.warning("Please provide either a valid project ID or valid three-letter user ID")
         return
 
     # Create project on Toggl Track

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "papi-projects"
-version = "0.2.0"
+version = "0.2.1"
 description = "PAPI is an API for managing projects"
 authors = ["sandyjmacdonald <sandyjmacdonald@gmail.com>"]
 license = "MIT"

@@ -51,24 +51,24 @@ def main():
     project_name = args.name
     project_id = args.project_id
 
-    if user_id and not user_name:
-        user = User(user_id=user_id)
-    elif user_name and not user_id:
-        user = User(user_name)
-    elif user_id and user_name:
-        user = User(user_name, user_id=user_id)
-    else:
-        logger.warning("Please provide either a three-letter user ID and/or user name")
-        return
-
     if project_id and not project_name:
         project = Project(id=project_id)
+        user_id = project.user_id
+        user = User(user_id=user_id)
     elif project_name and not project_id:
+        if user_id and not user_name:
+            user = User(user_id=user_id)
+        elif user_name and not user_id:
+            user = User(user_name)
+        elif user_id and user_name:
+            user = User(user_name, user_id=user_id)
         project = Project(name=project_name, user_id=user.user_id)
     elif project_id and project_name:
         project = Project(name=project_name, id=project_id)
+        user_id = project.user_id
+        user = User(user_id=user_id)
     else:
-        logger.warning("Please provide either a valid project ID and/or project name")
+        logger.warning("Please provide either a valid project ID or valid three-letter user ID")
         return
 
     # Create project on Notion
