@@ -1,5 +1,6 @@
 import sys
 import argparse
+import pyperclip
 from papi.wrappers import NotionWrapper, TogglTrackWrapper
 from papi import config, setup_logger
 from papi.user import User
@@ -147,6 +148,8 @@ def main():
         # Create project on Toggl Track
         toggl_proj_id = toggl.create_project(project, toggl.default_workspace_id)
 
+        pyperclip.copy(project.id)
+
     if enable_notion:
         # Set up Notion API wrapper
         #
@@ -166,6 +169,10 @@ def main():
             notion_proj_id = notion.create_project(project, user, notion_projects_db, user_page_id=user_page_id)
         else:
             notion_proj_id = notion.create_project(project, user, notion_projects_db)
+        
+        pyperclip.copy(project.id)
+
+        logger.info(f"Project created with ID: {project.id} (copied to clipboard)")
 
 if __name__ == "__main__":
     main()

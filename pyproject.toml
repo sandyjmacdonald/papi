@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "papi-projects"
-version = "0.2.1"
+version = "0.2.2"
 description = "PAPI is an API for managing projects"
 authors = ["sandyjmacdonald <sandyjmacdonald@gmail.com>"]
 license = "MIT"
@@ -17,6 +17,7 @@ pendulum = "^3.0.0"
 httpx = "^0.27.2"
 tinydb = "^4.8.0"
 python-dotenv = "^1.0.0"
+pyperclip = "^1.9.0"
 
 [tool.poetry.scripts]
 create-project = "scripts.create_project:main"

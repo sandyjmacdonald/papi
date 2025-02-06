@@ -199,6 +199,16 @@ tzdata = ">=2020.1"
 test = ["time-machine (>=2.6.0)"]
 
 [[package]]
+name = "pyperclip"
+version = "1.9.0"
+description = "A cross-platform clipboard module for Python. (Only handles plain text for now.)"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pyperclip-1.9.0.tar.gz", hash = "sha256:b7de0142ddc81bfc5c7507eea19da920b92252b548b96186caf94a5e2527d310"},
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 description = "Extensions to the standard Python datetime module"
@@ -273,4 +283,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "ddb76dc9e48c06441591c3b1365db7d4253e0aaf2304abd8a8e08d25f31055d5"
+content-hash = "a8f32685f747f6e212cadf8e526190e29574c6aeb3df3331badf8a8a180cdaff"

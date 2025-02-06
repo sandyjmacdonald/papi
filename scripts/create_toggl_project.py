@@ -1,4 +1,5 @@
 import argparse
+import pyperclip
 from papi.wrappers import TogglTrackWrapper
 from papi import config, setup_logger
 from papi.project import Project
@@ -73,6 +74,10 @@ def main():
     # look like P2024-JAS-ABCD - RNA-seq analysis (R12345),
     # otherwise it will just be the project ID
     toggl_proj_id = toggl.create_project(project, toggl.default_workspace_id)
+
+    pyperclip.copy(project.id)
+
+    logger.info(f"Project created with ID: {project.id} (copied to clipboard)")
 
 if __name__ == "__main__":
     main()

@@ -1,4 +1,5 @@
 import argparse
+import pyperclip
 from papi.wrappers import NotionWrapper
 from papi import config, setup_logger
 from papi.user import User
@@ -22,7 +23,7 @@ def main():
         "-p", "--project_id", type=str, help="full project ID, e.g. P2024-JAS-ABCD, if already generated", required=False
     )
     parser.add_argument(
-        '--enable-logging', action='store_true', help='enable logging output for the papi librar.'
+        '--enable-logging', action='store_true', help='enable logging output for the papi library.'
     )
     parser.add_argument(
         '--log-level', type=str, choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], default='INFO', help='set the logging level (default: INFO)'
@@ -77,6 +78,10 @@ def main():
         notion_proj_id = notion.create_project(project, user, notion_projects_db, user_page_id=user_page_id)
     else:
         notion_proj_id = notion.create_project(project, user, notion_projects_db)
+    
+    pyperclip.copy(project.id)
+
+    logger.info(f"Project created with ID: {project.id} (copied to clipboard)")
 
 if __name__ == "__main__":
     main()
