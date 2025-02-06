@@ -81,7 +81,8 @@ def main():
     
     pyperclip.copy(project.id)
 
-    logger.info(f"Project created with ID: {project.id} (copied to clipboard)")
+    print()
+    print(f"Project created with ID: {project.id} (copied to clipboard)")
 
 if __name__ == "__main__":
     main()

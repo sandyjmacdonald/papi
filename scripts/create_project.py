@@ -148,8 +148,6 @@ def main():
         # Create project on Toggl Track
         toggl_proj_id = toggl.create_project(project, toggl.default_workspace_id)
 
-        pyperclip.copy(project.id)
-
     if enable_notion:
         # Set up Notion API wrapper
         #
@@ -170,9 +168,10 @@ def main():
         else:
             notion_proj_id = notion.create_project(project, user, notion_projects_db)
         
-        pyperclip.copy(project.id)
+    pyperclip.copy(project.id)
 
-        logger.info(f"Project created with ID: {project.id} (copied to clipboard)")
+    print()
+    print(f"Project created with ID: {project.id} (copied to clipboard)")
 
 if __name__ == "__main__":
     main()
