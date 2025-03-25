@@ -436,7 +436,8 @@ class TogglTrackWrapper(Protocol):
         self, start_time=None, end_time=pendulum.now().to_rfc3339_string()
     ) -> dict:
         """Gets all of the Toggl Track user's tracked hours for a given
-        time period. If no end_time is given, then the current time is used.
+        time period. If no end_time is given, then the current time is used. 
+        Only works with start dates up to a maximum of three months ago.
 
         :return: A dictionary containing the Toggl Track projects and hours tracked.
         :rtype: dict
@@ -449,16 +450,20 @@ class TogglTrackWrapper(Protocol):
                 params={"start_date": start_time, "end_date": end_time},
             )
             times_json = r.json()
-            times = {}
-            for t in times_json:
-                pid = t["pid"]
-                seconds = t["duration"]
-                hours = seconds / 60 / 60
-                if pid not in times:
-                    times[pid] = hours
-                else:
-                    times[pid] += hours
-            return times
+            if isinstance(times_json, list):
+                times = {}
+                for t in times_json:
+                    pid = t["pid"]
+                    seconds = t["duration"]
+                    hours = seconds / 60 / 60
+                    if pid not in times:
+                        times[pid] = hours
+                    else:
+                        times[pid] += hours
+                return times
+            else:
+                warnings.warn(times_json)
+                return None
         else:
             warnings.warn("Please provide a valid start date/time in RFC3339 format!")
             return None
