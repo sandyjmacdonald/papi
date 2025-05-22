@@ -39,12 +39,13 @@ def main():
     #
     # NOTE: you must have added your Notion API credentials and user and projects
     # database IDs with variable names below to .env file in this directory
-    if "NOTION_API_SECRET"not in config and "NOTION_CLIENTS_DB" not in config and "NOTION_PROJECTS_DB" not in config:
+    if "NOTION_API_SECRET" not in config and "NOTION_CLIENTS_DB" not in config and "NOTION_PROJECTS_DB" not in config:
         logger.warning("Please create a .env file with NOTION_API_SECRET and NOTION_CLIENTS_DB and NOTION_PROJECTS_DB set!")
         return  
     notion_api_secret = config["NOTION_API_SECRET"]
     notion_clients_db = config["NOTION_CLIENTS_DB"]
     notion_projects_db = config["NOTION_PROJECTS_DB"]
+    notion_template_page_id = config["NOTION_TEMPLATE_PAGE_ID"]
     notion = NotionWrapper(notion_api_secret)
 
     user_id = args.user_id
@@ -75,9 +76,9 @@ def main():
     # Create project on Notion
     user_page_id = notion.get_user_page_id(notion_clients_db, user)
     if user_page_id is not None:
-        notion_proj_id = notion.create_project(project, user, notion_projects_db, user_page_id=user_page_id)
+        notion_proj_id = notion.create_project(project, user, notion_projects_db, user_page_id=user_page_id, template_page_id=notion_template_page_id)
     else:
-        notion_proj_id = notion.create_project(project, user, notion_projects_db)
+        notion_proj_id = notion.create_project(project, user, notion_projects_db, template_page_id=notion_template_page_id)
     
     pyperclip.copy(project.id)
 

@@ -623,6 +623,86 @@ class NotionWrapper(Protocol):
         self.api_secret = api_secret
         logger.info("NotionWrapper instance created")
 
+    def _headers(self) -> dict:
+        return {
+            "Authorization": f"Bearer {self.api_secret}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json",
+        }
+
+    def _fetch_template_page(self, template_page_id: str) -> dict:
+        """Retrieve the template page’s properties."""
+        r = httpx.get(
+            f"https://api.notion.com/v1/pages/{template_page_id}",
+            headers=self._headers()
+        )
+        r.raise_for_status()
+        return r.json()
+
+    def _fetch_template_blocks(self, template_page_id: str) -> list[dict]:
+        """Page through and collect all child blocks of the template."""
+        blocks: list[dict] = []
+        url = f"https://api.notion.com/v1/blocks/{template_page_id}/children"
+        params = {"page_size": 100}
+        while True:
+            r = httpx.get(url, headers=self._headers(), params=params)
+            r.raise_for_status()
+            js = r.json()
+            blocks.extend(js["results"])
+            if not js.get("has_more"):
+                break
+            params = {"start_cursor": js["next_cursor"], "page_size": 100}
+        return blocks
+
+    def _clean_properties(self, raw: dict) -> dict:
+        """Strip out IDs, types, rollup/formula wrappers, leaving only the API-legal values."""
+        clean = {}
+        for name, meta in raw.items():
+            t = meta.get("type")
+            if t == "title":
+                clean[name] = meta["title"]
+            elif t == "rich_text":
+                clean[name] = meta["rich_text"]
+            elif t == "select":
+                sel = meta.get("select")
+                if sel and sel.get("name"):
+                    clean[name] = {"name": sel["name"]}
+            elif t == "multi_select":
+                clean[name] = [
+                    {"name": m["name"]} for m in meta.get("multi_select", []) if m.get("name")
+                ]
+            elif t == "status":
+                st = meta.get("status")
+                if st and st.get("name"):
+                    clean[name] = {"name": st["name"]}
+            elif t == "date":
+                d = meta.get("date")
+                if d and d.get("start"):
+                    clean[name] = {"start": d["start"], **({"end": d["end"]} if d.get("end") else {})}
+            elif t in ("people", "relation"):
+                key = t
+                clean[name] = [ {"id": x["id"]} for x in meta.get(key, []) if x.get("id") ]
+        return clean
+
+    def _clean_blocks(self, raw_blocks: list[dict]) -> list[dict]:
+        ALLOWED = {
+            "paragraph","heading_1","heading_2","heading_3",
+            "to_do","bulleted_list_item","numbered_list_item",
+            "toggle","quote","callout",
+            "image","video","file","embed","bookmark",
+        }
+        clean = []
+        for b in raw_blocks:
+            t = b["type"]
+            if t not in ALLOWED:
+                continue
+            minimal = { "type": t, t: b[t] }
+            if b.get("has_children"):
+                child_raw = self._fetch_template_blocks(b["id"])
+                minimal["children"] = self._clean_blocks(child_raw)
+            clean.append(minimal)
+        return clean
+
     def create_user(self, user: User, clients_db_id: str) -> str:
         """Creates a Notion client (user) from a `User` instance.
 
@@ -639,10 +719,7 @@ class NotionWrapper(Protocol):
         user_name = user.user_name
         user_id = user.user_id
         email = user.email
-        headers = {
-            "Authorization": f"Bearer {self.api_secret}",
-            "Notion-Version": "2022-06-28",
-        }
+        headers = self._headers()
         data = {
             "parent": {"database_id": clients_db_id},
             "properties": {
@@ -712,10 +789,7 @@ class NotionWrapper(Protocol):
         """
         logger.debug("Calling NotionWrapper.get_user_page_id method")
         user_id = user.user_id
-        headers = {
-            "Authorization": f"Bearer {self.api_secret}",
-            "Notion-Version": "2022-06-28",
-        }
+        headers = self._headers()
         data = {
             "filter": {
                 "property": "Code",
@@ -749,10 +823,7 @@ class NotionWrapper(Protocol):
         :rtype: list
         """
         logger.debug("Calling NotionWrapper.get_users method")
-        headers = {
-            "Authorization": f"Bearer {self.api_secret}",
-            "Notion-Version": "2022-06-28",
-        }
+        headers = self._headers()
         data = {}
         r = httpx.post(
             f"https://api.notion.com/v1/databases/{clients_db_id}/query",
@@ -773,155 +844,74 @@ class NotionWrapper(Protocol):
             logger.warning("No Notion users found")
         return users
 
-    def create_project(self, project: Project, user: User, projects_db_id: str, user_page_id=None) -> str:
-        """Creates a new project on Notion.
-        
+    def create_project(
+        self,
+        project: Project,
+        user: User,
+        projects_db_id: str,
+        user_page_id: str | None = None,
+        template_page_id: str | None = None,
+    ) -> str:
+        """
+        Creates a new project on Notion, optionally cloning from a database template.
+
         :param project: A Project instance.
-        :type project: Project
         :param user: A User instance.
-        :type user: User
-        :param projects_db_id: ID of the Notion projects database in which to add the project.
-        :type projects_db_id: str
-        :param user_page_id: ID of the user in Notion, if they've been added. Can get this with 
-        get_user_page_id function.
-        :type user_page_id: str
-        :return: The page ID of the project created in Notion.
-        :rtype: str
+        :param projects_db_id: ID of the Notion projects database.
+        :param user_page_id: ID of the user in Notion (for the PI relation).
+        :param template_page_id: If given, we’ll fetch that page’s properties & children
+                                 and use them as the base for this new record.
+        :return: The page ID of the created project.
         """
         logger.debug("Calling NotionWrapper.create_project method")
-        project_id = project.id
-        project_name = project.name
-        user_id = user.user_id
-        if user_page_id is not None:
-            pi_relation = [{"id": user_page_id}]
+        headers = self._headers()
+
+        if template_page_id:
+            tpl_raw     = self._fetch_template_page(template_page_id)
+            base_props  = self._clean_properties(tpl_raw["properties"])
+            raw_blocks  = self._fetch_template_blocks(template_page_id)
+            base_blocks = self._clean_blocks(raw_blocks)
         else:
-            pi_relation = []
-        headers = {
-            "Authorization": f"Bearer {self.api_secret}",
-            "Notion-Version": "2022-06-28",
+            base_props, base_blocks = {}, []
+
+        overrides = {
+            "Project ID": [
+                {
+                    "type": "text",
+                    "text": {"content": project.id}
+                }
+            ],
+            "Description": [
+                {
+                    "type": "text",
+                    "text": {"content": project.name}
+                }
+            ],
+            "PI": [{"id": user_page_id}] if user_page_id else [],
         }
-        data = {
-            "parent": {"database_id": projects_db_id},
-            "properties": {
-                "Status": {
-                    "status": None,
-                },
-                "Description": {
-                    "type": "rich_text",
-                    "rich_text": [
-                        {
-                            "type": "text",
-                            "text": {
-                                "content": project_name,
-                                "link": None,
-                            },
-                            "annotations": {
-                                "bold": False,
-                                "italic": False,
-                                "strikethrough": False,
-                                "underline": False,
-                                "code": False,
-                                "color": "default",
-                            },
-                            "plain_text": project_name,
-                            "href": None,
-                        }
-                    ],
-                },
-                "Hourly Rate": {
-                    "type": "number",
-                    "number": 0.0,  # Set an appropriate number
-                },
-                "Slug": {
-                    "type": "rich_text",
-                    "rich_text": [
-                        {
-                            "type": "text",
-                            "text": {"content": project_name, "link": None},
-                            "annotations": {
-                                "bold": False,
-                                "italic": False,
-                                "strikethrough": False,
-                                "underline": False,
-                                "code": False,
-                                "color": "default",
-                            },
-                            "plain_text": project_name,
-                            "href": None,
-                        }
-                    ],
-                },
-                "Type": {
-                    "type": "select",  # Assuming Type is a select property
-                    "select": None,
-                },
-                "PI Code": {
-                    "type": "rich_text",
-                    "rich_text": [
-                        {
-                            "type": "text",
-                            "text": {"content": user_id, "link": None},
-                            "annotations": {
-                                "bold": False,
-                                "italic": False,
-                                "strikethrough": False,
-                                "underline": False,
-                                "code": False,
-                                "color": "default",
-                            },
-                            "plain_text": user_id,
-                            "href": None,
-                        }
-                    ],
-                },
-                "Priority": {
-                    "type": "select",
-                    "select": None,
-                },
-                "Tags": {
-                    "type": "multi_select",
-                    "multi_select": [],
-                },
-                "PI": {
-                    "type": "relation",
-                    "relation": pi_relation,
-                    "has_more": False,
-                },
-                "Start Date": {
-                    "type": "date",
-                    # "date": {"start": "2024-09-12", "end": None, "time_zone": None},
-                    "date": None,
-                },
-                "Owner": {
-                    "type": "people",
-                    "people": [],
-                },
-                "Project ID": {
-                    "type": "title",
-                    "title": [
-                        {
-                            "type": "text",
-                            "text": {"content": project_id, "link": None},
-                            "annotations": {
-                                "bold": False,
-                                "italic": False,
-                                "strikethrough": False,
-                                "underline": False,
-                                "code": False,
-                                "color": "default",
-                            },
-                            "plain_text": project_id,
-                            "href": None,
-                        }
-                    ],
-                },
-            },
+
+        merged_props = {**base_props, **overrides}
+
+        payload: dict = {
+            "parent":     {"database_id": projects_db_id},
+            "properties": merged_props,
         }
-        r = httpx.post("https://api.notion.com/v1/pages", headers=headers, json=data)
-        r_json = r.json()
-        page_id = r_json["id"]
-        logger.info(f"Notion project created with page ID {page_id}")
-        return page_id
+        if base_blocks:
+            payload["children"] = base_blocks
+
+        r = httpx.post("https://api.notion.com/v1/pages", headers=headers, json=payload)
+        try:
+            r.raise_for_status()
+        except httpx.HTTPStatusError:
+            print("→ Request JSON:")
+            print(json.dumps(payload, indent=2))
+            print("→ Notion error response:")
+            print(r.json())
+            raise
+
+        new_page_id = r.json()["id"]
+        logger.info(f"Notion project cloned from template as page ID {new_page_id}")
+        return new_page_id
 
     def get_projects(self, projects_db_id: str) -> list:
         """Gets the Notion projects from the Clients database.
@@ -933,10 +923,7 @@ class NotionWrapper(Protocol):
         :rtype: list
         """
         logger.debug("Calling NotionWrapper.get_projects method")
-        headers = {
-            "Authorization": f"Bearer {self.api_secret}",
-            "Notion-Version": "2022-06-28",
-        }
+        headers = self._headers()
         data = {}
         r = httpx.post(
             f"https://api.notion.com/v1/databases/{projects_db_id}/query",
