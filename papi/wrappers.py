@@ -978,7 +978,7 @@ class NotionWrapper(Protocol):
         for p in js.get("results", []):
             project_id = p["properties"]["Project ID"]["title"][0]["plain_text"]
             project_name = p["properties"]["Description"]["rich_text"][0]["plain_text"]
-            project_owner = None
+            project_owner =[owner["name"] for owner in p["properties"]["Owner"]["people"]]
             project_status = p["properties"]["Status"]["status"]["name"]
             project_priority = p["properties"]["Priority"]["select"]["name"]
             # pprint(p["properties"], indent=2)
@@ -989,6 +989,7 @@ class NotionWrapper(Protocol):
                 project = Project(
                     id=project_id,
                     name=project_name,
+                    owner=project_owner,
                     status=project_status,
                     priority=project_priority,
                 )

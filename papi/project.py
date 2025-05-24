@@ -183,7 +183,7 @@ class Project(Protocol):
         modified_at = None,
         status: str = None,
         priority: str = None,
-        owner: str = None
+        owner: list = None
     ) -> None:
         """Constructor method"""
         logger.debug("Creating Project instance")
@@ -241,6 +241,7 @@ class Project(Protocol):
             f"    user_id = {self.user_id},\n"
             f"    priority = {self.priority}\n"
             f"    status = {self.status}\n"
+            f"    owner = {self.owner}\n"
             f")"
         )
 
