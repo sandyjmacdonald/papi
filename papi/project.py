@@ -181,6 +181,9 @@ class Project(Protocol):
         workorder: str = None,
         created_at = None,
         modified_at = None,
+        status: str = None,
+        priority: str = None,
+        owner: str = None
     ) -> None:
         """Constructor method"""
         logger.debug("Creating Project instance")
@@ -190,6 +193,9 @@ class Project(Protocol):
         self.name = name
         self.created_at = created_at
         self.modified_at = modified_at
+        self.status = status
+        self.priority = priority
+        self.owner = owner
         if suffix is not None:
             self.suffix = suffix
         else:
@@ -220,14 +226,23 @@ class Project(Protocol):
             self.p_uuid = str(uuid.uuid4())
         logger.info(f"Project '{self.id}' instance created")
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """Machine-readable representation of class..
 
         :return: basic Project() attrs.
         :rtype: str
         """
-        logger.debug("Calling Project.__repr__ method")
-        return f'Project("{self.id}", "{self.name}")'
+        logger.debug("Calling Project.__str__ method")
+        return (
+            f"Project(\n"
+            f"    id = {self.id},\n"
+            f"    name = {self.name},\n"
+            f"    year = {self.year},\n"
+            f"    user_id = {self.user_id},\n"
+            f"    priority = {self.priority}\n"
+            f"    status = {self.status}\n"
+            f")"
+        )
 
     def generate_suffix(self) -> str:
         """Generates a 4-character, uppercase, alphabetical suffix for a project, and

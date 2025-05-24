@@ -6,6 +6,7 @@ import pendulum
 import warnings
 import logging
 from typing import Protocol, runtime_checkable
+from pprint import pprint
 from papi.project import Project, get_project_ids, decompose_project_name
 from papi.user import User
 
@@ -935,11 +936,18 @@ class NotionWrapper(Protocol):
         for p in r_json["results"]:
             project_id = p["properties"]["Project ID"]["title"][0]["plain_text"]
             project_name = p["properties"]["Description"]["rich_text"][0]["plain_text"]
+            project_owner = None
+            project_status = p["properties"]["Status"]["status"]["name"]
+            project_priority = p["properties"]["Priority"]["select"]["name"]
+            # pprint(p["properties"], indent=2)
             if "TEMPLATE" not in project_name:
                 user_id = p["properties"]["PI Code"]["rollup"]["array"][0]["rich_text"][0][
                     "plain_text"
                 ]
-                project = Project(id=project_id, name=project_name)
+                project = Project(id=project_id, 
+                                  name=project_name, 
+                                  status=project_status, 
+                                  priority=project_priority)
                 projects.append(project)
         if len(projects):
             logger.info(f"{len(projects)} Notion projects found")
