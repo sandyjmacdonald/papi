@@ -583,8 +583,8 @@ class TogglTrackWrapper(Protocol):
             name = project.id
             if project.name != "":
                 name += f" - {project.name}"
-            if project.grant_code is not None:
-                name += f" ({project.grant_code})"
+            if project.workorder is not None:
+                name += f" ({project.workorder})"
             data = {
                 "name": name,
                 "active": True,
@@ -935,11 +935,12 @@ class NotionWrapper(Protocol):
         for p in r_json["results"]:
             project_id = p["properties"]["Project ID"]["title"][0]["plain_text"]
             project_name = p["properties"]["Description"]["rich_text"][0]["plain_text"]
-            user_id = p["properties"]["PI Code"]["rollup"]["array"][0]["rich_text"][0][
-                "plain_text"
-            ]
-            project = Project(id=project_id, name=project_name)
-            projects.append(project)
+            if "TEMPLATE" not in project_name:
+                user_id = p["properties"]["PI Code"]["rollup"]["array"][0]["rich_text"][0][
+                    "plain_text"
+                ]
+                project = Project(id=project_id, name=project_name)
+                projects.append(project)
         if len(projects):
             logger.info(f"{len(projects)} Notion projects found")
         else:

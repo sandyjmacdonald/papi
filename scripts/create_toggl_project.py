@@ -13,7 +13,7 @@ def main():
         "-u", "--user_id", type=str, help="three-letter user ID, e.g. JAS", required=False
     )
     parser.add_argument(
-        "-g", "--grant_code", type=str, help="grant code, e.g. R12345", required=False
+        "-g", "--workorder", type=str, help="workorder, e.g. R12345", required=False
     )
     parser.add_argument(
         "-n", "--name", type=str, help="short project name, e.g. 'RNA-seq analysis'", required=False
@@ -50,7 +50,7 @@ def main():
     toggl.set_default_workspace(toggl_workspace)
 
     user_id = args.user_id
-    grant_code = args.grant_code
+    workorder = args.workorder
     project_name = args.name
     project_id = args.project_id
 
@@ -70,7 +70,7 @@ def main():
 
     # Create project on Toggl Track
     #
-    # If name and grant code were provided, then project name will
+    # If name and workorder were provided, then project name will
     # look like P2024-JAS-ABCD - RNA-seq analysis (R12345),
     # otherwise it will just be the project ID
     toggl_proj_id = toggl.create_project(project, toggl.default_workspace_id)

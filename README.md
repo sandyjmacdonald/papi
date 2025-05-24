@@ -62,15 +62,15 @@ Convenience CLI scripts are provided for some common tasks. They are:
 This script creates a project ID if necessary, and adds the project to your Toggl Track:
 
 ```
-usage: create-toggl-project [-h] [-u USER_ID] [-g GRANT_CODE] [-n NAME] [-p PROJECT_ID] [--enable-logging] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+usage: create-toggl-project [-h] [-u USER_ID] [-g WORKORDER] [-n NAME] [-p PROJECT_ID] [--enable-logging] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
                             [--log-file LOG_FILE]
 
 options:
   -h, --help            show this help message and exit
   -u USER_ID, --user_id USER_ID
                         three-letter user ID, e.g. JAS
-  -g GRANT_CODE, --grant_code GRANT_CODE
-                        grant code, e.g. R12345
+  -g workorder, --workorder WORKORDER
+                        workorder, e.g. R12345
   -n NAME, --name NAME  short project name, e.g. 'RNA-seq analysis'
   -p PROJECT_ID, --project_id PROJECT_ID
                         full project ID, e.g. P2024-JAS-ABCD, if already generated
@@ -80,7 +80,7 @@ options:
   --log-file LOG_FILE   path to a file where logs should be written
 ```
 
-Ideally, a three-character user ID, grant code, and short project name will be provided, and PAPI will generate the project ID, e.g.
+Ideally, a three-character user ID, workorder, and short project name will be provided, and PAPI will generate the project ID, e.g.
 
 ```
 create-toggl-project -u JAS -g R12345 -n 'Such project. Wow.'
@@ -92,7 +92,7 @@ If a project ID has already been created, then it can be provided via the `-p` a
 create-toggl-project -p P2024-JAS-ABCD -g R12345 -n 'Such project. Wow.'
 ```
 
-The grant code (`-g`) and name (`-n`) are not required, but either a project ID (`-p`) or user ID (`-u`) _is_ necessary.
+The workorder (`-g`) and name (`-n`) are not required, but either a project ID (`-p`) or user ID (`-u`) _is_ necessary.
 
 Logging can also be enabled at various levels of detail, and logs can be saved to a file.
 
@@ -234,10 +234,10 @@ JAS
 ABCD
 ```
 
-If a grant code and/or project name are available, then these can be passed in when instantiating the class.
+If a workorder and/or project name are available, then these can be passed in when instantiating the class.
 
 ```
-proj = Project(user_id="JAS", grant_code="R12345", name="RNA-seq analysis")
+proj = Project(user_id="JAS", workorder="R12345", name="RNA-seq analysis")
 ```
 
 A version 4 UUID is also generated for the project when instantiated.
