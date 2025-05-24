@@ -183,7 +183,8 @@ class Project(Protocol):
         modified_at = None,
         status: str = None,
         priority: str = None,
-        owner: list = None
+        owner: list = None,
+        notion_page_id: str = None
     ) -> None:
         """Constructor method"""
         logger.debug("Creating Project instance")
@@ -196,6 +197,7 @@ class Project(Protocol):
         self.status = status
         self.priority = priority
         self.owner = owner
+        self.notion_page_id = notion_page_id
         if suffix is not None:
             self.suffix = suffix
         else:
@@ -242,6 +244,7 @@ class Project(Protocol):
             f"    priority = {self.priority}\n"
             f"    status = {self.status}\n"
             f"    owner = {self.owner}\n"
+            f"    notion_page_id = {self.notion_page_id}\n"
             f")"
         )
 

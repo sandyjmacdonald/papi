@@ -945,11 +945,12 @@ class NotionWrapper(Protocol):
 
         new_page_id = r.json()["id"]
         logger.info(f"Notion project cloned from template as page ID {new_page_id}")
-        return new_page_id
+        project.notion_page_id = new_page_id
+        return project
 
-    def get_projects(self, projects_db_id: str) -> list:
+    def get_all_projects(self, projects_db_id: str) -> list:
         """
-        Fetches projects from the Notion Projects database, with timeout and retry.
+        Fetches all projects from the Notion Projects database, with timeout and retry.
 
         :param projects_db_id: ID of the Notion Projects database to query.
         :type projects_db_id: str
@@ -981,7 +982,7 @@ class NotionWrapper(Protocol):
             project_owner =[owner["name"] for owner in p["properties"]["Owner"]["people"]]
             project_status = p["properties"]["Status"]["status"]["name"]
             project_priority = p["properties"]["Priority"]["select"]["name"]
-            # pprint(p["properties"], indent=2)
+            notion_page_id = p["id"]
             if "TEMPLATE" not in project_name:
                 user_id = p["properties"]["PI Code"]["rollup"]["array"][0]["rich_text"][0][
                     "plain_text"
@@ -989,9 +990,11 @@ class NotionWrapper(Protocol):
                 project = Project(
                     id=project_id,
                     name=project_name,
+                    user_id=user_id,
                     owner=project_owner,
                     status=project_status,
                     priority=project_priority,
+                    notion_page_id=notion_page_id
                 )
                 projects.append(project)
 
@@ -1000,3 +1003,116 @@ class NotionWrapper(Protocol):
         else:
             logger.warning("No Notion projects found")
         return projects
+
+    def get_project(self, projects_db_id: str, project_id: str) -> Project | None:
+        """
+        Fetches a single project from the Notion Projects database whose
+        "Project ID" property equals the given project_id.
+
+        :param projects_db_id: ID of the Notion Projects database to query.
+        :type projects_db_id: str
+        :param project_id: The string value of the "Project ID" property to match.
+        :type project_id: str
+        :return: A Project instance if found, otherwise None.
+        :rtype: Project | None
+        """
+        headers = self._headers()
+        body: dict = {
+            "page_size": 1,
+            "filter": {
+                "property": "Project ID",
+                "title": {"equals": project_id}
+            }
+        }
+
+        try:
+            response = self._post_with_retries(
+                f"https://api.notion.com/v1/databases/{projects_db_id}/query",
+                headers=headers,
+                json=body,
+                timeout=httpx.Timeout(5.0, read=15.0),
+            )
+            response.raise_for_status()
+        except httpx.ReadTimeout:
+            logger.error("Notion project lookup timed out after all retries")
+            return None
+        except httpx.HTTPError as err:
+            logger.error(f"Failed to fetch project {project_id}: {err!r}")
+            return None
+
+        results = response.json().get("results", [])
+        if not results:
+            logger.warning(f"No project found with Project ID={project_id!r}")
+            return None
+
+        p = results[0]
+        props = p["properties"]
+
+        name    = props["Description"]["rich_text"][0]["plain_text"]
+        owner   = [u["name"] for u in props["Owner"]["people"]]
+        status  = props["Status"]["status"]["name"]
+        priority= props["Priority"]["select"]["name"]
+        user_id = props["PI Code"]["rollup"]["array"][0]["rich_text"][0]["plain_text"]
+        notion_page_id = p["id"]
+
+        project = Project(
+            id=project_id,
+            name=name,
+            user_id=user_id,
+            owner=owner,
+            status=status,
+            priority=priority,
+            notion_page_id=notion_page_id
+        )
+
+        logger.info(f"Notion project found: {project_id!r} with Notion page ID {notion_page_id}")
+        return project
+
+    def get_all_tasks(self, tasks_db_id: str) -> list:
+        """
+        Fetches all tasks from the Notion Tasks database, handling pagination,
+        timeout and retries.
+
+        :param tasks_db_id: ID of the Notion Tasks database to query.
+        :type tasks_db_id: str
+        :return: A list of Task instances for every task in the database.
+        :rtype: list
+        """
+        headers = self._headers()
+        tasks: list = []
+        cursor: str | None = None
+
+        while True:
+            body: dict = {"page_size": 100}
+            if cursor:
+                body["start_cursor"] = cursor
+
+            try:
+                response = self._post_with_retries(
+                    f"https://api.notion.com/v1/databases/{tasks_db_id}/query",
+                    headers=headers,
+                    json=body,
+                    timeout=httpx.Timeout(5.0, read=15.0),
+                )
+                response.raise_for_status()
+            except httpx.ReadTimeout:
+                logger.error("Notion tasks query timed out after all retries")
+                return []
+            except httpx.HTTPError as err:
+                logger.error(f"Failed to fetch tasks: {err!r}")
+                return []
+
+            js = response.json()
+            for t in js.get("results", []):
+                tasks.append(t)
+
+            if not js.get("has_more"):
+                break
+            cursor = js["next_cursor"]
+
+        if tasks:
+            logger.info(f"{len(tasks)} Notion tasks fetched")
+        else:
+            logger.warning("No Notion tasks found")
+
+        return tasks

@@ -153,9 +153,16 @@ def main():
         #
         # NOTE: you must have added your Notion API credentials and user and projects
         # database IDs with variable names below to .env file in this directory
-        if "NOTION_API_SECRET"not in config and "NOTION_CLIENTS_DB" not in config and "NOTION_PROJECTS_DB" not in config:
-            logger.warning("Please create a .env file with NOTION_API_SECRET and NOTION_CLIENTS_DB and NOTION_PROJECTS_DB set!")
-            return  
+        if (
+            "NOTION_API_SECRET" not in config
+            or "NOTION_CLIENTS_DB" not in config
+            or "NOTION_PROJECTS_DB" not in config
+            or "NOTION_TEMPLATE_PAGE_ID" not in config
+        ):
+            logger.warning(
+                "Please create a .env file with NOTION_API_SECRET, NOTION_CLIENTS_DB, NOTION_PROJECTS_DB, and NOTION_TEMPLATE_PAGE_ID set!"
+            )
+            return
         notion_api_secret = config["NOTION_API_SECRET"]
         notion_clients_db = config["NOTION_CLIENTS_DB"]
         notion_projects_db = config["NOTION_PROJECTS_DB"]
