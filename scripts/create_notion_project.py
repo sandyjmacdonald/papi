@@ -4,6 +4,7 @@ from papi.wrappers import NotionWrapper
 from papi import config, setup_logger
 from papi.user import User
 from papi.project import Project
+from papi.task import Task
 
 def main():
     """Main function of create-notion-project script"""
@@ -21,6 +22,9 @@ def main():
     )
     parser.add_argument(
         "-p", "--project_id", type=str, help="full project ID, e.g. P2024-JAS-ABCD, if already generated", required=False
+    )
+    parser.add_argument(
+        '--no-default-workorder-task', action='store_true', help='do not add default workorder task'
     )
     parser.add_argument(
         '--enable-logging', action='store_true', help='enable logging output for the papi library.'
@@ -52,6 +56,7 @@ def main():
     notion_api_secret = config["NOTION_API_SECRET"]
     notion_clients_db = config["NOTION_CLIENTS_DB"]
     notion_projects_db = config["NOTION_PROJECTS_DB"]
+    notion_tasks_db = config["NOTION_TASKS_DB"]
     notion_template_page_id = config["NOTION_TEMPLATE_PAGE_ID"]
     notion = NotionWrapper(notion_api_secret)
 
@@ -59,6 +64,7 @@ def main():
     user_name = args.user_name
     project_name = args.name
     project_id = args.project_id
+    default_workorder_task = not args.no_default_workorder_task
 
     if project_id and not project_name:
         project = Project(id=project_id)
@@ -87,6 +93,13 @@ def main():
     else:
         notion_proj_id = notion.create_project(project, user, notion_projects_db, template_page_id=notion_template_page_id)
     
+    if default_workorder_task:
+        task = Task(
+            name="Get workorder for project",
+            project_id=project.id
+        )
+        notion.add_task_to_project(task, tasks_db_id=notion_tasks_db, projects_db_id=notion_projects_db)
+
     pyperclip.copy(project.id)
 
     print()

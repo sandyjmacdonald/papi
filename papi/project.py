@@ -147,27 +147,48 @@ class Project(Protocol):
     """This class represents a project and all of its associated metadata.
 
     :param year: Year associated with the project. If no year is supplied, then the current
-        year will be used, defaults to THIS_YEAR
+        year will be used.
     :type year: int, optional
     :param user_id: User ID associated with project. Must be a valid user ID, i.e. either
         3 uppercase alphabetical initials, or 2 uppercase alphabetical initials followed
-        by a positive integer number, defaults to None
+        by a positive integer number.
     :type user_id: str, optional
     :param suffix: Project suffix; a 4-character, random, uppercase, alphabetical suffix.
-        If not supplied, then this will be auto-generated, defaults to None
+        If not supplied, then this will be auto-generated.
     :type suffix: str, optional
     :param id: Fully-formed project ID that can be supplied directly, assuming it is valid.
         A valid project ID is of the form P2024-ABC-WXYZ where 2024 is the year associated
         with the project, ABC is a valid 3-character user ID, and WXYZ is a valid 4-character
-        alphabetical suffix, defaults to None
+        alphabetical suffix.
     :type id: str, optional
     :param p_uuid: A valid version 4 UUID that can be supplied directly. If not supplied, then
-        this will be auto-generated, defaults to None
+        this will be auto-generated.
     :type p_uuid: str, optional
     :param name: A short, descriptive project name, e.g. "Mouse long-read RNA-seq analysis".
-        If not supplied, then this will be left as an empty string, defaults to ""
+        If not supplied, defaults to an empty string.
     :type name: str, optional
-    :raises TypeError: If fully-formed project ID "id" is malformed, then a TypeError is raised.
+    :param workorder: Internal work order number or code associated with the project.
+        If not supplied, defaults to None.
+    :type workorder: str, optional
+    :param created_at: Timestamp when the project was created.
+        If not supplied, defaults to None.
+    :type created_at: datetime or str, optional
+    :param modified_at: Timestamp when the project was last modified.
+        If not supplied, defaults to None.
+    :type modified_at: datetime or str, optional
+    :param status: Current status of the project, matching the Notion Status options
+        (e.g. "Not Started", "In Progress", "On Hold", "Completed").
+    :type status: str, optional
+    :param priority: Project priority level, matching the Notion Priority options
+        (e.g. "Low", "Medium", "High", "Critical").
+    :type priority: str, optional
+    :param owner: List of owners of the project.
+        If not supplied, defaults to None.
+    :type owner: list[str], optional
+    :param notion_page_id: The internal Notion page UUID for this project record.
+        If not supplied, defaults to None.
+    :type notion_page_id: str, optional
+    :raises TypeError: If the fully-formed project ID `id` is malformed.
     """
 
     def __init__(
@@ -184,6 +205,7 @@ class Project(Protocol):
         status: str = None,
         priority: str = None,
         owner: list = None,
+        tasks: list = None,
         notion_page_id: str = None
     ) -> None:
         """Constructor method"""
@@ -197,6 +219,7 @@ class Project(Protocol):
         self.status = status
         self.priority = priority
         self.owner = owner
+        self.tasks = tasks
         self.notion_page_id = notion_page_id
         if suffix is not None:
             self.suffix = suffix
