@@ -704,6 +704,39 @@ class NotionWrapper(Protocol):
             clean.append(minimal)
         return clean
 
+    def _post_with_retries(
+        self,
+        url: str,
+        max_retries: int = 3,
+        backoff_factor: float = 1.0,
+        **kwargs
+    ) -> httpx.Response:
+        """
+        Perform an HTTP POST with a simple retry/backoff on ReadTimeout.
+
+        :param url: The URL to send the POST request to.
+        :type url: str
+        :param max_retries: Maximum number of attempts before giving up.
+        :type max_retries: int
+        :param backoff_factor: Initial backoff delay in seconds, doubled each retry.
+        :type backoff_factor: float
+        :param kwargs: Any additional arguments to pass to httpx.post().
+        :return: The successful HTTP response.
+        :rtype: httpx.Response
+        :raises RuntimeError: If all retries time out.
+        """
+        delay = backoff_factor
+        for attempt in range(1, max_retries + 1):
+            try:
+                return httpx.post(url, **kwargs)
+            except httpx.ReadTimeout:
+                logger.warning(
+                    f"Timeout on attempt {attempt}/{max_retries} for {url}, retrying in {delay}s…"
+                )
+                time.sleep(delay)
+                delay *= 2
+        raise RuntimeError(f"All {max_retries} retries timed out for {url}")
+
     def create_user(self, user: User, clients_db_id: str) -> str:
         """Creates a Notion client (user) from a `User` instance.
 
@@ -915,25 +948,34 @@ class NotionWrapper(Protocol):
         return new_page_id
 
     def get_projects(self, projects_db_id: str) -> list:
-        """Gets the Notion projects from the Clients database.
+        """
+        Fetches projects from the Notion Projects database, with timeout and retry.
 
-        :param projects_db_id: ID of the Notion Projects database from which to get
-        the projects.
+        :param projects_db_id: ID of the Notion Projects database to query.
         :type projects_db_id: str
-        :return: A list of Project instances for the returned projects from Notion.
+        :return: A list of Project instances for the returned projects.
         :rtype: list
         """
-        logger.debug("Calling NotionWrapper.get_projects method")
         headers = self._headers()
         data = {}
-        r = httpx.post(
-            f"https://api.notion.com/v1/databases/{projects_db_id}/query",
-            headers=headers,
-            json=data,
-        )
-        r_json = r.json()
+        try:
+            response = self._post_with_retries(
+                f"https://api.notion.com/v1/databases/{projects_db_id}/query",
+                headers=headers,
+                json=data,
+                timeout=httpx.Timeout(5.0, read=15.0),
+            )
+            response.raise_for_status()
+        except httpx.ReadTimeout:
+            logger.error("Notion query timed out after all retries")
+            return []
+        except httpx.HTTPError as err:
+            logger.error(f"Failed to fetch projects: {err!r}")
+            return []
+
         projects = []
-        for p in r_json["results"]:
+        js = response.json()
+        for p in js.get("results", []):
             project_id = p["properties"]["Project ID"]["title"][0]["plain_text"]
             project_name = p["properties"]["Description"]["rich_text"][0]["plain_text"]
             project_owner = None
@@ -944,12 +986,15 @@ class NotionWrapper(Protocol):
                 user_id = p["properties"]["PI Code"]["rollup"]["array"][0]["rich_text"][0][
                     "plain_text"
                 ]
-                project = Project(id=project_id, 
-                                  name=project_name, 
-                                  status=project_status, 
-                                  priority=project_priority)
+                project = Project(
+                    id=project_id,
+                    name=project_name,
+                    status=project_status,
+                    priority=project_priority,
+                )
                 projects.append(project)
-        if len(projects):
+
+        if projects:
             logger.info(f"{len(projects)} Notion projects found")
         else:
             logger.warning("No Notion projects found")
