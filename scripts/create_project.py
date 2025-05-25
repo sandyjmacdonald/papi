@@ -177,7 +177,7 @@ def main():
         user_page_id = notion.get_user_page_id(
             config["NOTION_CLIENTS_DB"], user
         )
-        notion_proj_id = notion.create_project(
+        notion_project = notion.create_project(
             project,
             user,
             config["NOTION_PROJECTS_DB"],
@@ -185,22 +185,27 @@ def main():
             template_page_id=config["NOTION_TEMPLATE_PAGE_ID"],
         )
 
-        if default_workorder_task:
-            task = Task(
-                name="Get workorder for project",
-                project_id=project.id,
-            )
-            notion.add_task_to_project(
-                task,
-                tasks_db_id=config["NOTION_TASKS_DB"],
-                projects_db_id=config["NOTION_PROJECTS_DB"],
-            )
+        if notion_project:
+            # Copy to clipboard and print result
+            pyperclip.copy(project.id)
+            print(f"Project created with ID: {project.id} (copied to clipboard)")
 
-    # Copy to clipboard and print result
-    pyperclip.copy(project.id)
-    print()
-    print(f"Project created with ID: {project.id} (copied to clipboard)")
-
+            # Add default task to get workorder      
+            if default_workorder_task:
+                task = Task(
+                    name="Get workorder for project",
+                    project_id=project.id,
+                )
+                notion.add_task_to_project(
+                    task,
+                    tasks_db_id=config["NOTION_TASKS_DB"],
+                    projects_db_id=config["NOTION_PROJECTS_DB"],
+                )
+                print(f"Default workorder task add to project {project.id}")
+            return notion_project
+        else:
+            print(f"Project not created. {project.id} may exist in Notion already, or project ID clashes.")
+            return
 
 if __name__ == "__main__":
     main()

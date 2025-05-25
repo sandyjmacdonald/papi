@@ -922,7 +922,7 @@ class NotionWrapper(Protocol):
         existing_project = self.check_project_exists(project, projects_db_id=projects_db_id)
         if existing_project:
             logger.info(f"Project {project.id!r} already exists in Notion as page {existing_project.notion_page_id}")
-            return existing_project
+            return
 
         if template_page_id:
             tpl_raw     = self._fetch_template_page(template_page_id)
