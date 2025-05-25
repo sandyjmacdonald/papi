@@ -879,6 +879,24 @@ class NotionWrapper(Protocol):
             logger.warning("No Notion users found")
         return users
 
+    def check_project_exists(self, project: Project, projects_db_id: str) -> Project:
+        """Checks whether a Notion project containing the specified
+        project ID already exists. If a name containing that ID is found,
+        return the existing project.
+
+        :return: The Project instance, if it exists.
+        :rtype: Project
+        """
+        logger.debug("Calling NotionWrapper.check_project_exists method")
+        
+        existing_projects = self.get_all_projects(projects_db_id)
+        project_exists = project.id in [p.id for p in existing_projects]
+        if project_exists:
+            existing_project = self.get_project(projects_db_id=projects_db_id, project_id=project.id)
+            return existing_project
+        else:
+            return
+
     def create_project(
         self,
         project: Project,
@@ -900,6 +918,11 @@ class NotionWrapper(Protocol):
         """
         logger.debug("Calling NotionWrapper.create_project method")
         headers = self._headers()
+
+        existing_project = self.check_project_exists(project, projects_db_id=projects_db_id)
+        if existing_project:
+            logger.info(f"Project {project.id!r} already exists in Notion as page {existing_project.notion_page_id}")
+            return existing_project
 
         if template_page_id:
             tpl_raw     = self._fetch_template_page(template_page_id)
@@ -986,6 +1009,7 @@ class NotionWrapper(Protocol):
             f"Notion project cloned and properties normalized: page ID {new_page_id}"
         )
         return project
+
 
     def get_all_projects(self, projects_db_id: str) -> list:
         """
