@@ -47,10 +47,11 @@ def main():
         "NOTION_API_SECRET" not in config
         or "NOTION_CLIENTS_DB" not in config
         or "NOTION_PROJECTS_DB" not in config
+        or "NOTION_TASKS_DB" not in config
         or "NOTION_TEMPLATE_PAGE_ID" not in config
     ):
         logger.warning(
-            "Please create a .env file with NOTION_API_SECRET, NOTION_CLIENTS_DB, NOTION_PROJECTS_DB, and NOTION_TEMPLATE_PAGE_ID set!"
+            "Please create a .env file with NOTION_API_SECRET, NOTION_CLIENTS_DB, NOTION_PROJECTS_DB, NOTION_TASKS_DB, and NOTION_TEMPLATE_PAGE_ID set!"
         )
         return
     notion_api_secret = config["NOTION_API_SECRET"]
