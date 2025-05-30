@@ -10,7 +10,7 @@ def prompt_for_args():
     print("No command-line arguments provided. Enter the required information below:")
     print()
 
-    project_id = input("Enter project ID to which task should be added (e.g., P2024-JAS-DEFG): ").strip()
+    project_id = input("Enter project ID (e.g., P2024-JAS-DEFG): ").strip()
 
     task_name = input("Enter task name (e.g., 'Run Seqera QC pipeline'): ").strip()
 
