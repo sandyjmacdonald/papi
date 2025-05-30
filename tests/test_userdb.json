@@ -11,32 +11,38 @@
             "user_name": "James Smith"
         },
         "3": {
+            "created_at": "2025-05-25 20:39:20.136365+01:00",
             "email": "ab.cooper@dummymail.com",
             "user_id": "ABC",
             "user_name": "Adam Brian Cooper"
         },
         "4": {
+            "created_at": "2025-05-25 20:39:20.136565+01:00",
             "email": "ab.cartwright@dummymail.com",
             "user_id": "AC1",
             "user_name": "Angela Barbara Cartwright"
         },
         "5": {
+            "created_at": "2025-05-25 20:39:20.136737+01:00",
             "email": "a.baxter@dummymail.com",
             "user_id": "AB1",
             "user_name": "Andrew Baxter"
         },
         "6": {
+            "created_at": "2025-05-25 20:39:20.136917+01:00",
             "email": "a.donald@dummymail.com",
             "user_id": "AD1",
             "user_name": "Alan Donald"
         },
         "7": {
+            "created_at": "2025-05-25 20:39:20.137100+01:00",
             "email": "a.duncan@dummymail.com",
             "user_id": "AD2",
             "user_name": "Andrew Duncan"
         },
         "8": {
-            "email": null,
+            "created_at": "2025-05-25 20:39:20.137643+01:00",
+            "email": "dup@example.com",
             "user_id": "JS2",
             "user_name": "John Adam Smith"
         }

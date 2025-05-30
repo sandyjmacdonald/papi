@@ -5,15 +5,14 @@ from dotenv import dotenv_values
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 config = dotenv_values(dotenv_path)
 
-ASANA_API_KEY = config["ASANA_API_KEY"]
-ASANA_PASSWORD = config["ASANA_PASSWORD"]
-
 TOGGL_TRACK_API_KEY = config["TOGGL_TRACK_API_KEY"]
 TOGGL_TRACK_PASSWORD = config["TOGGL_TRACK_PASSWORD"]
 
 NOTION_API_SECRET = config["NOTION_API_SECRET"]
 NOTION_CLIENTS_DB = config["NOTION_CLIENTS_DB"]
 NOTION_PROJECTS_DB = config["NOTION_PROJECTS_DB"]
+NOTION_TASKS_DB = config["NOTION_TASKS_DB"]
+NOTION_TEMPLATE_PAGE_ID = config["NOTION_TEMPLATE_PAGE_ID"]
 
 def setup_logger(enable_logging: bool, log_level: str = 'INFO', log_file: str = None):
     logger = logging.getLogger('papi')

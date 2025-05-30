@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "papi-projects"
-version = "0.2.5"
+version = "0.3.0"
 description = "PAPI is an API for managing projects"
 authors = ["sandyjmacdonald <sandyjmacdonald@gmail.com>"]
 license = "MIT"
@@ -23,6 +23,7 @@ pyperclip = "^1.9.0"
 create-project = "scripts.create_project:main"
 create-toggl-project = "scripts.create_toggl_project:main"
 create-notion-project = "scripts.create_notion_project:main"
+create-notion-task = "scripts.create_notion_task:main"
 collate-toggl-hours = "scripts.collate_toggl_hours:main"
 
 [build-system]

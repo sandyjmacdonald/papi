@@ -40,7 +40,7 @@ def get_project_ids(project_names) -> list:
 
 def decompose_project_name(project_name) -> dict:
     """This function takes a project name string and attempts
-    to split out a project ID, name, and grant code.
+    to split out a project ID, name, and workorder.
 
     :param project_name: A project name string.
     :type project_name: str
@@ -54,7 +54,7 @@ def decompose_project_name(project_name) -> dict:
         (?:\s*[-–—]\s*|\s+)?
         (?P<project_name>[^()\[\]]+?)?
         (?:\s*[\(\[]\s*
-            (?P<grant_code>[^)\]]+)
+            (?P<workorder>[^)\]]+)
         \s*[\)\]])?
         $
     """
@@ -63,17 +63,17 @@ def decompose_project_name(project_name) -> dict:
     if match:
         project_id = match.group('project_id')
         project_name = match.group('project_name')
-        grant_code = match.group('grant_code')
+        workorder = match.group('workorder')
         return {
             "project_id": project_id,
             "project_name": project_name,
-            "grant_code": grant_code
+            "workorder": workorder
         }
     else:
         return {
             "project_id": None,
             "project_name": None,
-            "grant_code": None
+            "workorder": None
         }
 
 def check_project_id(id: str) -> bool:
@@ -147,27 +147,48 @@ class Project(Protocol):
     """This class represents a project and all of its associated metadata.
 
     :param year: Year associated with the project. If no year is supplied, then the current
-        year will be used, defaults to THIS_YEAR
+        year will be used.
     :type year: int, optional
     :param user_id: User ID associated with project. Must be a valid user ID, i.e. either
         3 uppercase alphabetical initials, or 2 uppercase alphabetical initials followed
-        by a positive integer number, defaults to None
+        by a positive integer number.
     :type user_id: str, optional
     :param suffix: Project suffix; a 4-character, random, uppercase, alphabetical suffix.
-        If not supplied, then this will be auto-generated, defaults to None
+        If not supplied, then this will be auto-generated.
     :type suffix: str, optional
     :param id: Fully-formed project ID that can be supplied directly, assuming it is valid.
         A valid project ID is of the form P2024-ABC-WXYZ where 2024 is the year associated
         with the project, ABC is a valid 3-character user ID, and WXYZ is a valid 4-character
-        alphabetical suffix, defaults to None
+        alphabetical suffix.
     :type id: str, optional
     :param p_uuid: A valid version 4 UUID that can be supplied directly. If not supplied, then
-        this will be auto-generated, defaults to None
+        this will be auto-generated.
     :type p_uuid: str, optional
     :param name: A short, descriptive project name, e.g. "Mouse long-read RNA-seq analysis".
-        If not supplied, then this will be left as an empty string, defaults to ""
+        If not supplied, defaults to an empty string.
     :type name: str, optional
-    :raises TypeError: If fully-formed project ID "id" is malformed, then a TypeError is raised.
+    :param workorder: Internal work order number or code associated with the project.
+        If not supplied, defaults to None.
+    :type workorder: str, optional
+    :param created_at: Timestamp when the project was created.
+        If not supplied, defaults to None.
+    :type created_at: datetime or str, optional
+    :param modified_at: Timestamp when the project was last modified.
+        If not supplied, defaults to None.
+    :type modified_at: datetime or str, optional
+    :param status: Current status of the project, matching the Notion Status options
+        (e.g. "Not Started", "In Progress", "On Hold", "Completed").
+    :type status: str, optional
+    :param priority: Project priority level, matching the Notion Priority options
+        (e.g. "Low", "Medium", "High", "Critical").
+    :type priority: str, optional
+    :param owner: List of owners of the project.
+        If not supplied, defaults to None.
+    :type owner: list[str], optional
+    :param notion_page_id: The internal Notion page UUID for this project record.
+        If not supplied, defaults to None.
+    :type notion_page_id: str, optional
+    :raises TypeError: If the fully-formed project ID `id` is malformed.
     """
 
     def __init__(
@@ -178,18 +199,28 @@ class Project(Protocol):
         id: str = None,
         p_uuid: str = None,
         name: str = "",
-        grant_code: str = None,
+        workorder: str = None,
         created_at = None,
         modified_at = None,
+        status: str = None,
+        priority: str = None,
+        owner: list = None,
+        tasks: list = None,
+        notion_page_id: str = None
     ) -> None:
         """Constructor method"""
         logger.debug("Creating Project instance")
         self.year = year
         self.user_id = user_id
-        self.grant_code = grant_code
+        self.workorder = workorder
         self.name = name
         self.created_at = created_at
         self.modified_at = modified_at
+        self.status = status
+        self.priority = priority
+        self.owner = owner
+        self.tasks = tasks
+        self.notion_page_id = notion_page_id
         if suffix is not None:
             self.suffix = suffix
         else:
@@ -207,7 +238,7 @@ class Project(Protocol):
             self.id = f"P{self.year}-{self.user_id}-{self.suffix}"
         else:
             raise TypeError(
-                "ID is incorrectly formed, must similar to P2024-ABC-DEFG or P2024-AB1-DEFG"
+                f"ID '{id}' is incorrectly formed, must similar to P2024-ABC-DEFG or P2024-AB1-DEFG"
             )
         if p_uuid is not None and check_uuid(p_uuid):
             self.p_uuid = p_uuid
@@ -220,14 +251,25 @@ class Project(Protocol):
             self.p_uuid = str(uuid.uuid4())
         logger.info(f"Project '{self.id}' instance created")
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         """Machine-readable representation of class..
 
         :return: basic Project() attrs.
         :rtype: str
         """
-        logger.debug("Calling Project.__repr__ method")
-        return f'Project("{self.id}", "{self.name}")'
+        logger.debug("Calling Project.__str__ method")
+        return (
+            f"Project(\n"
+            f"    id = {self.id},\n"
+            f"    name = {self.name},\n"
+            f"    year = {self.year},\n"
+            f"    user_id = {self.user_id},\n"
+            f"    priority = {self.priority}\n"
+            f"    status = {self.status}\n"
+            f"    owner = {self.owner}\n"
+            f"    notion_page_id = {self.notion_page_id}\n"
+            f")"
+        )
 
     def generate_suffix(self) -> str:
         """Generates a 4-character, uppercase, alphabetical suffix for a project, and

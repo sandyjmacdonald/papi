@@ -2,7 +2,7 @@ PAPI is an API for managing projects.
 
 <img src="https://imgur.com/lprJ3mP.jpg" alt="HAHA BUSINESS meme" height="250">
 
-It has functionality for creating User and Project instances, storing users in a TinyDB database, and generating project IDs in the format we use in the Data Science group (at the Bioscience Technology Facility at the University of York). It also has wrappers for Asana and Notion, and Toggl Track, tools we use for project management and time tracking, respectively.
+It has functionality for creating User and Project instances, storing users in a TinyDB database, and generating project IDs in the format we use in the Data Science group (at the Bioscience Technology Facility at the University of York). It also has wrappers for Notion and Toggl Track, tools we use for project management and time tracking, respectively.
 
 Much of the functionality is tailor-made to the way we manage projects in our group, but make of it what you will!
 
@@ -25,17 +25,11 @@ poetry install
 
 ## Environment variables
 
-The Asana and Toggl Track wrappers expect several environment variables for API keys, etc. and the best way to do this is with a .env file that can be loaded via the Python dotenv library straight into your script. The CLI scripts provided also expect these variables to be in a .env file.
+The Notion and Toggl Track wrappers expect several environment variables for API keys, etc. and the best way to do this is with a .env file that can be loaded via the Python dotenv library straight into your script. The CLI scripts provided also expect these variables to be in a .env file.
 
 The .env file should look as follows:
 
 ```
-# Asana config:
-ASANA_API_KEY="YOURAPIKEY"
-ASANA_PASSWORD=""
-ASANA_WORKSPACE="myworkspace"
-ASANA_TEAM="My Team Name"
-
 # toggl track config:
 TOGGL_TRACK_API_KEY="YOURAPIKEY"
 TOGGL_TRACK_PASSWORD="api_token"
@@ -45,9 +39,9 @@ TOGGL_TRACK_WORKSPACE="My Workspace Name"
 NOTION_API_SECRET = "YOURAPISECRET"
 NOTION_CLIENTS_DB = "notionclientsdbid"
 NOTION_PROJECTS_DB = "notionprojectsdbid"
+NOTION_TASKS_DB = "notiontasksdbid"
+NOTION_TEMPLATE_PAGE_ID = "notiontemplatepageid"
 ```
-
-The `ASANA_PASSWORD` and `TOGGL_TRACK_PASSWORD` values can be left as above, the remaining ones should be replaced with the correct values from your Notion, Asana, and Toggl Track accounts.
 
 This .env file can either be put in your working directory or in the top-level papi module folder wherever it is installed.
 
@@ -62,15 +56,14 @@ Convenience CLI scripts are provided for some common tasks. They are:
 This script creates a project ID if necessary, and adds the project to your Toggl Track:
 
 ```
-usage: create-toggl-project [-h] [-u USER_ID] [-g GRANT_CODE] [-n NAME] [-p PROJECT_ID] [--enable-logging] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-                            [--log-file LOG_FILE]
+usage: create-toggl-project [-h] [-u USER_ID] [-g WORKORDER] [-n NAME] [-p PROJECT_ID] [--enable-logging] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--log-file LOG_FILE]
 
 options:
   -h, --help            show this help message and exit
   -u USER_ID, --user_id USER_ID
                         three-letter user ID, e.g. JAS
-  -g GRANT_CODE, --grant_code GRANT_CODE
-                        grant code, e.g. R12345
+  -g WORKORDER, --workorder WORKORDER
+                        workorder, e.g. R12345
   -n NAME, --name NAME  short project name, e.g. 'RNA-seq analysis'
   -p PROJECT_ID, --project_id PROJECT_ID
                         full project ID, e.g. P2024-JAS-ABCD, if already generated
@@ -80,7 +73,7 @@ options:
   --log-file LOG_FILE   path to a file where logs should be written
 ```
 
-Ideally, a three-character user ID, grant code, and short project name will be provided, and PAPI will generate the project ID, e.g.
+Ideally, a three-character user ID, workorder, and short project name will be provided, and PAPI will generate the project ID, e.g.
 
 ```
 create-toggl-project -u JAS -g R12345 -n 'Such project. Wow.'
@@ -92,7 +85,7 @@ If a project ID has already been created, then it can be provided via the `-p` a
 create-toggl-project -p P2024-JAS-ABCD -g R12345 -n 'Such project. Wow.'
 ```
 
-The grant code (`-g`) and name (`-n`) are not required, but either a project ID (`-p`) or user ID (`-u`) _is_ necessary.
+The workorder (`-g`) and name (`-n`) are not required, but either a project ID (`-p`) or user ID (`-u`) _is_ necessary.
 
 Logging can also be enabled at various levels of detail, and logs can be saved to a file.
 
@@ -129,8 +122,8 @@ collate-toggl-hours -s 2024-08-01 -e 2024-08-31 -o august-2024-hours.tsv
 This script creates a project ID if necessary, and adds the project to the Notion projects database:
 
 ```
-usage: create-notion-project [-h] [-u USER_ID] [-v USER_NAME] [-n NAME] [-p PROJECT_ID] [--enable-logging] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-                             [--log-file LOG_FILE]
+usage: create-notion-project [-h] [-u USER_ID] [-v USER_NAME] [-n NAME] [-p PROJECT_ID] [--no-default-workorder-task] [--enable-logging]
+                             [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--log-file LOG_FILE]
 
 options:
   -h, --help            show this help message and exit
@@ -141,7 +134,9 @@ options:
   -n NAME, --name NAME  short project name, e.g. 'RNA-seq analysis', project ID will be auto-generated
   -p PROJECT_ID, --project_id PROJECT_ID
                         full project ID, e.g. P2024-JAS-ABCD, if already generated
-  --enable-logging      enable logging output for the papi library
+  --no-default-workorder-task
+                        do not add default workorder task
+  --enable-logging      enable logging output for the papi library.
   --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         set the logging level (default: INFO)
   --log-file LOG_FILE   path to a file where logs should be written
@@ -161,23 +156,46 @@ create-notion-project -p P2024-JAS-ABCD -n 'Such project. Wow.'
 
 Logging can also be enabled at various levels of detail, and logs can be saved to a file.
 
+### create-notion-task
+
+This script adds a task to a Notion project, and expects an existing (in Notion) project ID and task name to be passed in:
+
+```
+usage: create-notion-task [-h] [-t TASK_NAME] [-p PROJECT_ID] [--enable-logging] [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--log-file LOG_FILE]
+
+options:
+  -h, --help            show this help message and exit
+  -t TASK_NAME, --task_name TASK_NAME
+                        task name (e.g., 'Run Seqera QC pipeline')
+  -p PROJECT_ID, --project_id PROJECT_ID
+                        full project ID, e.g. P2024-JAS-DEFG
+  --enable-logging      enable logging output for the papi library
+  --log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        set the logging level (default: INFO)
+  --log-file LOG_FILE   path to a file where logs should be written
+```
+
+If no arguments are given to the script, i.e. just running `create-notion-task`, then interactive prompts are shown to enter the necessary arguments.
+
 ### create-project
 
 This script can create a project on Toggl Track or Notion, or both:
 
 ```
-usage: create-project [-h] [-u USER_ID] [-v USER_NAME] [-n NAME] [-p PROJECT_ID] [--enable-toggl] [--enable-notion] [--enable-logging]
+usage: create-project [-h] [-u USER_ID] [-v USER_NAME] [-n NAME] [-p PROJECT_ID] [--no-default-workorder-task] [--enable-toggl] [--enable-notion] [--enable-logging]
                       [--log-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--log-file LOG_FILE]
 
 options:
   -h, --help            show this help message and exit
   -u USER_ID, --user_id USER_ID
-                        three-letter user (client) ID, e.g. JAS
+                        three-letter user ID, e.g. JAS
   -v USER_NAME, --user_name USER_NAME
-                        user (client) name, e.g. John Andrew Smith
-  -n NAME, --name NAME  short project name, e.g. 'RNA-seq analysis', project ID will be auto-generated
+                        user name, e.g. John Andrew Smith
+  -n NAME, --name NAME  short project name, e.g. 'RNA-seq analysis'
   -p PROJECT_ID, --project_id PROJECT_ID
-                        full project ID, e.g. P2024-JAS-DEFG, if already generated
+                        full project ID, e.g. P2024-JAS-DEFG
+  --no-default-workorder-task
+                        do not add default workorder task
   --enable-toggl        create Toggl Track project
   --enable-notion       create Notion project
   --enable-logging      enable logging output for the papi library
@@ -234,10 +252,10 @@ JAS
 ABCD
 ```
 
-If a grant code and/or project name are available, then these can be passed in when instantiating the class.
+If a workorder and/or project name are available, then these can be passed in when instantiating the class.
 
 ```
-proj = Project(user_id="JAS", grant_code="R12345", name="RNA-seq analysis")
+proj = Project(user_id="JAS", workorder="R12345", name="RNA-seq analysis")
 ```
 
 A version 4 UUID is also generated for the project when instantiated.
