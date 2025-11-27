@@ -266,6 +266,7 @@ class Project(Protocol):
             f"    user_id = {self.user_id},\n"
             f"    priority = {self.priority}\n"
             f"    status = {self.status}\n"
+            f"    workorder = {self.workorder}\n"
             f"    owner = {self.owner}\n"
             f"    notion_page_id = {self.notion_page_id}\n"
             f")"

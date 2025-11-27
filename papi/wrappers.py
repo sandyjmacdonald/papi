@@ -10,6 +10,7 @@ from pprint import pprint
 from papi.project import Project, get_project_ids, decompose_project_name
 from papi.task import Task
 from papi.user import User
+from papi.workorder import Workorder
 
 logger = logging.getLogger(__name__)
 
@@ -599,6 +600,213 @@ class NotionWrapper(Protocol):
             logger.warning("No Notion users found")
         return users
 
+    def get_trac_costs(
+        self,
+        trac_costs_db_id: str,
+        key: str,
+    ) -> dict:
+        """
+        Fetches TRAC costs give a TRAC type key.
+
+        You must pass both of `trac_costs_db_id` and `key`.
+
+        :param trac_costs_db_id: ID of the Notion TRAC Costs database to query.
+        :type trac_costs_db_id: str
+        :param key: The TRAC type key e.g. Internal Charity.
+        :return: A dictionary with the TRAC costs data.
+        :rtype: dict
+        """
+        logger.debug("Calling NotionWrapper.get_trac_costs method")
+        headers = self._headers()
+        body = {
+            "page_size": 1,
+            "filter": {
+                "property": "key",
+                "title": {"equals": key}
+            }
+        }
+        url = f"https://api.notion.com/v1/databases/{trac_costs_db_id}/query"
+        request = lambda: self._post_with_retries(
+            url, headers=headers, json=body,
+            timeout=httpx.Timeout(5.0, read=15.0),
+        )
+        try:
+            resp = request()
+            resp.raise_for_status()
+        except httpx.ReadTimeout:
+            logger.error("Notion TRAC costs lookup timed out after retries")
+            return None
+        except httpx.HTTPError as err:
+            logger.error(f"Failed to fetch TRAC costs: {err!r}")
+            return None
+        # Extract the page dict, whether from query or retrieve
+        results = resp.json().get("results", [])
+        if not results:
+            logger.warning(f"No TRAC cost found with key={key!r}")
+            return None
+        page = results[0]
+        props = page.get("properties", {})
+        rate_raw = props["Rate"]["number"]
+        try:
+            rate = float(rate_raw)
+        except (TypeError, ValueError):
+            raise ValueError(f"TRAC rate must be convertible to float, got: {rate_raw}")
+        trac_cost = {key: rate}
+
+        return trac_cost 
+
+    def get_workorder(
+        self,
+        workorders_db_id: str,
+        workorder_id: str | None = None,
+        notion_page_id: str | None = None,
+        trac_costs_db_id: str | None = None,
+    ) -> Workorder | None:
+        """
+        Fetches a single workorder, either by its workorder ID
+        or by its Notion page ID.
+
+        You must pass exactly one of `workorder_id` or `notion_page_id`.
+
+        :param workorders_db_id: ID of the Notion Workorders database to query.
+        :type workorders_db_id: str
+        :param workorder_id: The value of the "Workorder" property to match.
+        :type workorder_id: str or None
+        :param notion_page_id: The Notion page ID of the workorder to retrieve.
+        :type notion_page_id: str or None
+        :param trac_costs_db_id: ID of the Notion TRAC costs database to query.
+        :type trac_costs_db_id: str
+        :return: A Workorder instance if found, otherwise None.
+        :rtype: Workorder | None
+        """
+        logger.debug("Calling NotionWrapper.get_workorder method")
+        headers = self._headers()
+        if bool(workorder_id) == bool(notion_page_id):
+            logger.error("Must provide exactly one of workorder_id or notion_page_id")
+            return None
+        if workorder_id:
+            body = {
+                "page_size": 1,
+                "filter": {
+                    "property": "Workorder",
+                    "title": {"equals": workorder_id}
+                }
+            }
+            url = f"https://api.notion.com/v1/databases/{workorders_db_id}/query"
+            request = lambda: self._post_with_retries(
+                url, headers=headers, json=body,
+                timeout=httpx.Timeout(5.0, read=15.0),
+            )
+        else:
+            url = f"https://api.notion.com/v1/pages/{notion_page_id}"
+            request = lambda: httpx.get(
+                url, headers=headers,
+                timeout=httpx.Timeout(5.0, read=15.0),
+            )
+        try:
+            resp = request()
+            resp.raise_for_status()
+        except httpx.ReadTimeout:
+            logger.error("Notion workorder lookup timed out after retries")
+            return None
+        except httpx.HTTPError as err:
+            logger.error(f"Failed to fetch workorder: {err!r}")
+            return None
+        # Extract the page dict, whether from query or retrieve
+        if workorder_id:
+            results = resp.json().get("results", [])
+            if not results:
+                logger.warning(f"No workorder found with Workorder ID={workorder_id!r}")
+                return None
+            page = results[0]
+        else:
+            page = resp.json()
+
+        props = page.get("properties", {})
+        try:
+            notion_page_id = page["id"]
+            if props["Funder"]["select"] is not None:
+                funder = props["Funder"]["select"]["name"]
+            else:
+                funder = None
+            if props["Payment Type"]["select"] is not None:
+                payment_type = props["Payment Type"]["select"]["name"]
+            else:
+                payment_type = None
+            id = props["Workorder"]["title"][0]["plain_text"]
+            if len(props["Project Location"]["rollup"]["array"]):
+                project_location = props["Project Location"]["rollup"]["array"][0]["select"]["name"]
+            else:
+                project_location = None
+            if len(props["Costing"]["rollup"]["array"]):
+                costing_rate = props["Costing"]["rollup"]["array"][0]["select"]["name"]
+            else:
+                costing_rate = None
+            if len(props["Hourly Rate"]["rollup"]["array"]):
+                hourly_rate = props["Hourly Rate"]["rollup"]["array"][0]["number"]
+            else:
+                hourly_rate = None
+
+            workorder = Workorder(
+                id=id,
+                funder=funder,
+                project_location=project_location,
+                costing_rate=costing_rate,
+                payment_type=payment_type,
+                hourly_rate=hourly_rate,
+                notion_page_id=notion_page_id,
+            )
+        except (KeyError, IndexError) as e:
+            logger.error(f"Malformed workorder properties on page {nid!r}: {e!r}")
+            return None
+
+        # logger.info(f"Notion project loaded: {pid!r} → page {nid}")
+        return workorder 
+
+    def get_workorders(self, workorders_db_id: str) -> list:
+        """Gets the Notion workorders from the Workorders database.
+
+        :param workorders_db_id: ID of the Notion Workorders database from which to get
+        the workorders.
+        :type workorders_db_id: str
+        :return: A list of Workorder instances from Notion.
+        :rtype: list
+        """
+        logger.debug("Calling NotionWrapper.get_workorders method")
+        headers = self._headers()
+        data = {}
+        r = httpx.post(
+            f"https://api.notion.com/v1/databases/{workorders_db_id}/query",
+            headers=headers,
+            json=data,
+        )
+        r_json = r.json()
+        workorders = []
+        for w in r_json["results"]:
+            notion_page_id = w["id"]
+            if w["properties"]["Funder"]["select"] is not None:
+                funder = w["properties"]["Funder"]["select"]["name"]
+            else:
+                funder = None
+            if w["properties"]["Payment Type"]["select"] is not None:
+                payment_type = w["properties"]["Payment Type"]["select"]["name"]
+            else:
+                payment_type = None
+            id = w["properties"]["Workorder"]["title"][0]["plain_text"]
+            workorder = Workorder(
+                id=id,
+                funder=funder,
+                payment_type=payment_type,
+                notion_page_id=notion_page_id,
+            )
+            print(workorder)
+        if len(workorders):
+            logger.info(f"{len(workorders)} Notion workorders found")
+        else:
+            logger.warning("No Notion workorders found")
+        return workorders
+
+
     def check_project_exists(self, project: Project, projects_db_id: str) -> Project:
         """Checks whether a Notion project containing the specified
         project ID already exists. If a name containing that ID is found,
@@ -766,6 +974,7 @@ class NotionWrapper(Protocol):
             project_owner =[owner["name"] for owner in p["properties"]["Owner"]["people"]]
             project_status = p["properties"]["Status"]["status"]["name"]
             project_priority = p["properties"]["Priority"]["select"]["name"]
+            print(p["properties"])
             notion_page_id = p["id"]
             if "TEMPLATE" not in project_name:
                 user_id = p["properties"]["PI Code"]["rollup"]["array"][0]["rich_text"][0][
@@ -793,6 +1002,7 @@ class NotionWrapper(Protocol):
         projects_db_id: str,
         project_id: str | None = None,
         notion_page_id: str | None = None,
+        workorders_db_id: str | None = None,
     ) -> Project | None:
         """
         Fetches a single project, either by its custom "Project ID" property
@@ -806,6 +1016,8 @@ class NotionWrapper(Protocol):
         :type project_id: str or None
         :param notion_page_id: The Notion page ID of the project to retrieve.
         :type notion_page_id: str or None
+        :param workorders_db_id: ID of the Notion Workorders database to query.
+        :type workorders_db_id: str or None
         :return: A Project instance if found, otherwise None.
         :rtype: Project | None
         """
@@ -867,13 +1079,27 @@ class NotionWrapper(Protocol):
             priority = props["Priority"]["select"]["name"]
             user_id = props["PI Code"]["rollup"]["array"][0]["rich_text"][0]["plain_text"]
             nid = page["id"]
+            if len(props["Workorder"]["relation"]):
+                workorder_page_id = props["Workorder"]["relation"][0]["id"]
+            else:
+                workorder_page_id = None
         except (KeyError, IndexError) as e:
             logger.error(f"Malformed project properties on page {nid!r}: {e!r}")
             return None
 
+        if workorders_db_id is not None and workorder_page_id is not None:
+            workorder = self.get_workorder(workorders_db_id=workorders_db_id, notion_page_id=workorder_page_id)
+            if workorder is not None:
+                workorder_id = workorder.id
+            else:
+                workorder_id = None
+        else:
+            workorder_id = None
+
         project = Project(
             id=pid,
             name=name,
+            workorder=workorder_id,
             user_id=user_id,
             owner=owner,
             status=status,
