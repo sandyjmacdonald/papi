@@ -799,7 +799,6 @@ class NotionWrapper(Protocol):
                 payment_type=payment_type,
                 notion_page_id=notion_page_id,
             )
-            print(workorder)
         if len(workorders):
             logger.info(f"{len(workorders)} Notion workorders found")
         else:
@@ -974,7 +973,6 @@ class NotionWrapper(Protocol):
             project_owner =[owner["name"] for owner in p["properties"]["Owner"]["people"]]
             project_status = p["properties"]["Status"]["status"]["name"]
             project_priority = p["properties"]["Priority"]["select"]["name"]
-            print(p["properties"])
             notion_page_id = p["id"]
             if "TEMPLATE" not in project_name:
                 user_id = p["properties"]["PI Code"]["rollup"]["array"][0]["rich_text"][0][

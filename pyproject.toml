@@ -1,6 +1,6 @@
 [project]
 name = "papi-projects"
-version = "0.4.0"
+version = "0.4.1"
 description = "PAPI is an API for managing projects"
 authors = [{ name = "sandyjmacdonald", email = "sandyjmacdonald@gmail.com" }]
 license = "MIT"
@@ -13,6 +13,7 @@ dependencies = [
     "tinydb>=4.8.0",
     "python-dotenv>=1.0.0",
     "pyperclip>=1.9.0",
+    "pandas>=2.3.3",
 ]
 
 [project.scripts]

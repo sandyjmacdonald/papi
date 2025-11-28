@@ -2,10 +2,10 @@ import argparse
 import pendulum
 import warnings
 from papi.wrappers import TogglTrackWrapper, NotionWrapper
-from papi import config
+from papi import config, setup_logger
 from papi.project import get_project_ids, check_project_id
-
 from decimal import Decimal, ROUND_UP
+import pandas as pd
 
 def initialise_toggl(toggl_api_key, toggl_workspace):
     """Initialises the TogglTrackWrapper.
@@ -65,7 +65,6 @@ def get_toggl_hours(start_time, end_time, toggl):
 
 def main():
     """Main function of generate-timesheet script"""
-
     # Set up argparse
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -75,13 +74,22 @@ def main():
         "-e", "--end", type=str, help="end date in YYYY-MM-DD format, if none supplied then end date is now", default=False
     )
     parser.add_argument(
+        "--disable-logging",
+        action="store_true",
+        help="disable logging output for the papi library",
+    )
+    parser.add_argument(
         "-o",
         "--output",
         type=str,
-        help="output TSV filename, omit to write to stdout",
+        help="output TSV filename",
         default=False,
+        required=True
     )
     args = parser.parse_args()
+
+    if not args.disable_logging:
+        logger = setup_logger(True, "WARNING", None)
 
     # Set up start/end date
     start_date = args.start
@@ -105,29 +113,82 @@ def main():
         notion_projects_db = config["NOTION_PROJECTS_DB"]
         notion_workorders_db = config["NOTION_WORKORDERS_DB"]
         notion = NotionWrapper(notion_api_secret)
-
         project_ids = hours_dict.keys()
+        output = args.output
+        df = pd.DataFrame(
+            columns=[
+                "workorder",
+                "project_id",
+                "payment_type",
+                "costing_rate",
+                "hourly_rate",
+                "hours",
+                "cost",
+                "description",
+                "agresso_description",
+            ]
+        )
+
         for project_id in project_ids:
+            hours = float(hours_dict[project_id])
+            payment_type = ""
+            costing_rate = ""
+            hourly_rate = ""
+            cost = 0.0
+            chargeable = False
+            workorder_id = ""
             if check_project_id(project_id):
-                project = notion.get_project(notion_projects_db, project_id, workorders_db_id=notion_workorders_db)
+                project = notion.get_project(
+                    notion_projects_db,
+                    project_id,
+                    workorders_db_id=notion_workorders_db
+                )
+                project_name = project.name
                 workorder_id = project.workorder
                 if workorder_id is not None:
-                    workorder = notion.get_workorder(workorders_db_id=notion_workorders_db, workorder_id=workorder_id)
+                    workorder = notion.get_workorder(
+                        workorders_db_id=notion_workorders_db,
+                        workorder_id=workorder_id
+                    )
                     if workorder.is_complete():
-                        hours = float(hours_dict[project_id])
-                        print(
-                            f"{workorder.id}\t"
-                            f"{project_id}\t"
-                            f"{workorder.payment_type}\t"
-                            f"{workorder.costing_rate}\t"
-                            f"{workorder.hourly_rate}\t"
-                            f"{hours}\t"
-                            f"{calculate_cost(hours, workorder.hourly_rate)}\t"
-                            f"{project.name}\t"
-                            f"{project.id}: {project.name}"
+                        payment_type = workorder.payment_type
+                        costing_rate = workorder.costing_rate
+                        hourly_rate = workorder.hourly_rate
+                        cost = calculate_cost(hours, workorder.hourly_rate)
+                        chargeable = True
+                        logger.warning(
+                            f"Project: {project_id}: Has complete data and is chargeable"
                         )
+                    else:
+                        logger.warning(
+                            f"Project {project_id}: Workorder {workorder.id} has incomplete data!"
+                        )
+                else:
+                    workorder_id = ""
+                    logger.warning(f"Project {project_id}: Workorder is missing!")
+            else:
+                logger.warning(f"Project {project_id}: Not a valid project ID!")
+                project_name = project_id
+
+            agresso_description = f"{project_id}: {project_name}"
+            description = project_name
+
+            df.loc[len(df)] = [
+                workorder_id,
+                project_id,
+                payment_type,
+                costing_rate,
+                hourly_rate,
+                hours,
+                cost,
+                description,
+                agresso_description,
+            ]
+
+        df.to_csv(output, sep="\t", index=False)
+        logger.warning(f"{len(df)} journal entries successfully written to {output}")
     else:
-        warnings.warn("Start time must not be more than 3 months ago!")
+        logger.warning("Start time must not be more than 3 months ago!")
 
 if __name__ == "__main__":
     main()
