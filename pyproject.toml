@@ -1,6 +1,6 @@
 [project]
 name = "papi-projects"
-version = "0.4.1"
+version = "0.4.2"
 description = "PAPI is an API for managing projects"
 authors = [{ name = "sandyjmacdonald", email = "sandyjmacdonald@gmail.com" }]
 license = "MIT"
