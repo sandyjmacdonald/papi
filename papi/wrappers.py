@@ -176,14 +176,18 @@ class TogglTrackWrapper(Protocol):
             if isinstance(times_json, list):
                 times = {}
                 for t in times_json:
-                    pid = t["pid"]
-                    seconds = t["duration"]
-                    hours = seconds / 60 / 60
-                    if pid not in times:
-                        times[pid] = hours
-                    else:
-                        times[pid] += hours
-                return times
+                    if "pid" in t:
+                        pid = t["pid"]
+                        seconds = t["duration"]
+                        hours = seconds / 60 / 60
+                        if pid not in times:
+                            times[pid] = hours
+                        else:
+                            times[pid] += hours
+                if times:
+                    return times
+                else:
+                    return None
             else:
                 warnings.warn(times_json)
                 return None
@@ -419,7 +423,11 @@ class NotionWrapper(Protocol):
             t = b["type"]
             if t not in ALLOWED:
                 continue
-            minimal = { "type": t, t: b[t] }
+            block_data = {
+                k: v for k, v in b[t].items()
+                if v is not None and not (k == "color" and v == "default")
+            }
+            minimal = {"type": t, t: block_data}
             if b.get("has_children"):
                 child_raw = self._fetch_template_blocks(b["id"])
                 minimal["children"] = self._clean_blocks(child_raw)
@@ -910,7 +918,7 @@ class NotionWrapper(Protocol):
                     "people": []
                 },
                 "Status": {
-                    "status": {"name": "Not Started"}
+                    "status": {"name": "In Development"}
                 },
                 "Priority": {
                     "select": {"name": "Medium"}
