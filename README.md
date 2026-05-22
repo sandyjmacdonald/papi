@@ -1,3 +1,12 @@
+> [!IMPORTANT]
+> **This repository has moved to Codeberg.**
+>
+> Active development now happens at **[https://codeberg.org/sandyjmacdonald/papi](https://codeberg.org/sandyjmacdonald/papi)**.
+>
+> This GitHub copy is archived and read-only. Please file issues, open pull requests, and follow the project on Codeberg.
+
+---
+
 PAPI is an API for managing projects.
 
 <img src="https://imgur.com/lprJ3mP.jpg" alt="HAHA BUSINESS meme" height="250">
